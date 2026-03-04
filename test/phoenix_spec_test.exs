@@ -38,6 +38,19 @@ defmodule PhoenixSpecTest do
       assert Map.has_key?(spec["paths"]["/users/{id}"], "delete")
     end
 
+    test "spectral annotations on actions appear as summary and description in spec" do
+      spec = generate_spec()
+      show_op = spec["paths"]["/users/{id}"]["get"]
+      assert show_op["summary"] == "Get user"
+      assert show_op["description"] == "Returns a user by ID"
+    end
+
+    test "actions without spectral annotations have no summary in spec" do
+      spec = generate_spec()
+      index_op = spec["paths"]["/users"]["get"]
+      refute Map.has_key?(index_op, "summary")
+    end
+
     test "union return types produce multiple response entries" do
       spec = generate_spec()
 

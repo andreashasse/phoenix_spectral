@@ -10,15 +10,15 @@ defmodule PhoenixSpec do
       {:ok, spec} = PhoenixSpec.generate_openapi(MyAppWeb.Router, %{title: "My API", version: "1.0.0"})
   """
 
-  # Records from deps/spectra/include/spectra_internal.hrl
+  # Records extracted from deps/spectra/include/spectra_internal.hrl.
   require Record
-  Record.defrecordp(:sp_function_spec, args: [], return: nil)
-  Record.defrecordp(:sp_literal, value: nil, binary_value: nil, meta: %{})
-  Record.defrecordp(:sp_map, fields: [], struct_name: nil, meta: %{})
-  Record.defrecordp(:sp_tuple, fields: :any, meta: %{})
-  Record.defrecordp(:sp_union, types: [], meta: %{})
-  Record.defrecordp(:sp_user_type_ref, type_name: nil, variables: [], meta: %{})
-  Record.defrecordp(:literal_map_field, kind: nil, name: nil, binary_name: nil, val_type: nil)
+  Record.defrecordp(:sp_function_spec, Record.extract(:sp_function_spec, from_lib: "spectra/include/spectra_internal.hrl"))
+  Record.defrecordp(:sp_literal, Record.extract(:sp_literal, from_lib: "spectra/include/spectra_internal.hrl"))
+  Record.defrecordp(:sp_map, Record.extract(:sp_map, from_lib: "spectra/include/spectra_internal.hrl"))
+  Record.defrecordp(:sp_tuple, Record.extract(:sp_tuple, from_lib: "spectra/include/spectra_internal.hrl"))
+  Record.defrecordp(:sp_user_type_ref, Record.extract(:sp_user_type_ref, from_lib: "spectra/include/spectra_internal.hrl"))
+  Record.defrecordp(:literal_map_field, Record.extract(:literal_map_field, from_lib: "spectra/include/spectra_internal.hrl"))
+  Record.defrecordp(:sp_union, Record.extract(:sp_union, from_lib: "spectra/include/spectra_internal.hrl"))
 
   @doc """
   Generates an OpenAPI 3.0 specification from a Phoenix router module.
@@ -56,7 +56,13 @@ defmodule PhoenixSpec do
     {path_args_type, headers_type, body_type, return_type} =
       extract_handler_type(controller, action)
 
-    Spectral.OpenAPI.endpoint(verb, phoenix_path_to_openapi_path(path))
+    doc =
+      case Spectral.TypeInfo.get_function_doc(controller.__spectra_type_info__(), action, 3) do
+        {:ok, doc} -> doc
+        {:error, _} -> %{}
+      end
+
+    Spectral.OpenAPI.endpoint(verb, phoenix_path_to_openapi_path(path), doc)
     |> maybe_add_request_body(verb, controller, body_type)
     |> add_header_parameters(controller, headers_type)
     |> add_path_parameters(controller, path_args_type)

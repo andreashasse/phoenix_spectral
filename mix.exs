@@ -26,13 +26,7 @@ defmodule PhoenixSpec.MixProject do
   defp deps do
     [
       {:phoenix, "~> 1.7"},
-      {:spectral,
-       git: "https://github.com/andreashasse/spectral.git",
-       branch: "json-term-option"},
-      {:spectra,
-       git: "https://github.com/andreashasse/spectra.git",
-       branch: "json-term-option",
-       override: true},
+      {:spectral, "~> 0.6.0"},
       {:jason, "~> 1.0", only: :test}
     ]
   end

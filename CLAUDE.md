@@ -61,7 +61,7 @@ sp_user_type_ref(type_name: name)               # not {:sp_user_type_ref, name, 
 sp_simple_type(type: :binary)                   # construction and matching
 ```
 
-`Record.extract` does not work with spectra's .hrl (type specs reference `spectra:sp_type()` which it tries to evaluate), so records are defined manually with `Record.defrecordp`.
+All records use `Record.extract` from the `.hrl` file directly.
 
 ## Test Support
 
