@@ -3,6 +3,9 @@ defmodule Example.UserController do
 
   alias Example.Types.{User, UserInput, Error}
 
+  spectral description: "The ID of the user"
+  @type user_id :: String.t()
+
   @type read_headers :: %{}
   @type write_headers :: %{required(:"x-api-key") => String.t()}
 
@@ -19,7 +22,7 @@ defmodule Example.UserController do
   end
 
   spectral summary: "Get user", description: "Returns a user by ID"
-  @spec show(%{id: String.t()}, read_headers(), nil) ::
+  @spec show(%{id: user_id()}, read_headers(), nil) ::
           {200, %{}, User.t()} | {404, %{}, Error.t()}
   def show(%{id: id}, _headers, _body) do
     case Map.get(@users, id) do
@@ -37,7 +40,7 @@ defmodule Example.UserController do
   end
 
   spectral summary: "Update user", description: "Updates an existing user by ID"
-  @spec update(%{id: String.t()}, write_headers(), UserInput.t()) ::
+  @spec update(%{id: user_id()}, write_headers(), UserInput.t()) ::
           {200, %{}, User.t()} | {404, %{}, Error.t()} | {422, %{}, Error.t()}
   def update(%{id: id}, _headers, body) do
     case Map.get(@users, id) do
@@ -51,7 +54,7 @@ defmodule Example.UserController do
   end
 
   spectral summary: "Delete user", description: "Deletes a user by ID"
-  @spec delete(%{id: String.t()}, write_headers(), nil) :: {204, %{}, nil}
+  @spec delete(%{id: user_id()}, write_headers(), nil) :: {204, %{}, nil}
   def delete(_path_args, _headers, _body) do
     {204, %{}, nil}
   end

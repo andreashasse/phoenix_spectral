@@ -32,8 +32,11 @@ defmodule TestHeaderController do
           {200, count_response_headers(), TestUser.t()} | {404, %{}, TestError.t()}
   def search(%{id: id}, _headers, _body) do
     case id do
-      "1" -> {200, %{:"x-count" => 1}, %TestUser{id: 1, name: "Alice", email: "alice@example.com"}}
-      _ -> {404, %{}, %TestError{message: "Not found"}}
+      "1" ->
+        {200, %{:"x-count" => 1}, %TestUser{id: 1, name: "Alice", email: "alice@example.com"}}
+
+      _ ->
+        {404, %{}, %TestError{message: "Not found"}}
     end
   end
 end

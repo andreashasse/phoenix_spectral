@@ -12,13 +12,41 @@ defmodule PhoenixSpec do
 
   # Records extracted from deps/spectra/include/spectra_internal.hrl.
   require Record
-  Record.defrecordp(:sp_function_spec, Record.extract(:sp_function_spec, from_lib: "spectra/include/spectra_internal.hrl"))
-  Record.defrecordp(:sp_literal, Record.extract(:sp_literal, from_lib: "spectra/include/spectra_internal.hrl"))
-  Record.defrecordp(:sp_map, Record.extract(:sp_map, from_lib: "spectra/include/spectra_internal.hrl"))
-  Record.defrecordp(:sp_tuple, Record.extract(:sp_tuple, from_lib: "spectra/include/spectra_internal.hrl"))
-  Record.defrecordp(:sp_user_type_ref, Record.extract(:sp_user_type_ref, from_lib: "spectra/include/spectra_internal.hrl"))
-  Record.defrecordp(:literal_map_field, Record.extract(:literal_map_field, from_lib: "spectra/include/spectra_internal.hrl"))
-  Record.defrecordp(:sp_union, Record.extract(:sp_union, from_lib: "spectra/include/spectra_internal.hrl"))
+
+  Record.defrecordp(
+    :sp_function_spec,
+    Record.extract(:sp_function_spec, from_lib: "spectra/include/spectra_internal.hrl")
+  )
+
+  Record.defrecordp(
+    :sp_literal,
+    Record.extract(:sp_literal, from_lib: "spectra/include/spectra_internal.hrl")
+  )
+
+  Record.defrecordp(
+    :sp_map,
+    Record.extract(:sp_map, from_lib: "spectra/include/spectra_internal.hrl")
+  )
+
+  Record.defrecordp(
+    :sp_tuple,
+    Record.extract(:sp_tuple, from_lib: "spectra/include/spectra_internal.hrl")
+  )
+
+  Record.defrecordp(
+    :sp_user_type_ref,
+    Record.extract(:sp_user_type_ref, from_lib: "spectra/include/spectra_internal.hrl")
+  )
+
+  Record.defrecordp(
+    :literal_map_field,
+    Record.extract(:literal_map_field, from_lib: "spectra/include/spectra_internal.hrl")
+  )
+
+  Record.defrecordp(
+    :sp_union,
+    Record.extract(:sp_union, from_lib: "spectra/include/spectra_internal.hrl")
+  )
 
   @doc """
   Generates an OpenAPI 3.0 specification from a Phoenix router module.
@@ -129,12 +157,9 @@ defmodule PhoenixSpec do
     Enum.reduce(fields, endpoint, fn field, ep ->
       literal_map_field(kind: kind, binary_name: binary_name, val_type: val_type) = field
 
-      param_spec = %{
-        name: binary_name,
-        in: :header,
-        required: kind == :exact,
-        schema: val_type
-      }
+      param_spec =
+        %{name: binary_name, in: :header, required: kind == :exact, schema: val_type}
+        |> maybe_put_type_description(val_type, type_info)
 
       Spectral.OpenAPI.with_parameter(ep, controller, param_spec)
     end)
@@ -160,16 +185,24 @@ defmodule PhoenixSpec do
     Enum.reduce(fields, endpoint, fn field, ep ->
       literal_map_field(binary_name: binary_name, val_type: val_type) = field
 
-      param_spec = %{
-        name: binary_name,
-        in: :path,
-        required: true,
-        schema: val_type
-      }
+      param_spec =
+        %{name: binary_name, in: :path, required: true, schema: val_type}
+        |> maybe_put_type_description(val_type, type_info)
 
       Spectral.OpenAPI.with_parameter(ep, controller, param_spec)
     end)
   end
+
+  defp maybe_put_type_description(param_spec, sp_user_type_ref(type_name: name), type_info) do
+    {:ok, type} = Spectral.TypeInfo.find_type(type_info, name, 0)
+
+    case :spectra_type.get_meta(type) do
+      %{doc: doc} -> Map.merge(param_spec, doc)
+      _ -> param_spec
+    end
+  end
+
+  defp maybe_put_type_description(param_spec, _val_type, _type_info), do: param_spec
 
   defp http_method_supports_body?(:post), do: true
   defp http_method_supports_body?(:put), do: true

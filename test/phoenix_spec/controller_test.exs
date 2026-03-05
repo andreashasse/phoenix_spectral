@@ -13,7 +13,15 @@ defmodule PhoenixSpec.ControllerTest do
   end
 
   defp dispatch(method, path, body_params, path_params \\ %{}, req_headers \\ []) do
-    call(TestUserController, action_from_path(method, path), method, path, body_params, path_params, req_headers)
+    call(
+      TestUserController,
+      action_from_path(method, path),
+      method,
+      path,
+      body_params,
+      path_params,
+      req_headers
+    )
   end
 
   defp dispatch_header(action, path_params, req_headers) do

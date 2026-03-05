@@ -6,7 +6,8 @@ defmodule TestUserController do
     {200, %{}, [%TestUser{id: 1, name: "Alice", email: "alice@example.com"}]}
   end
 
-  spectral summary: "Get user", description: "Returns a user by ID"
+  spectral(summary: "Get user", description: "Returns a user by ID")
+
   @spec show(%{id: String.t()}, %{}, nil) ::
           {200, %{}, TestUser.t()} | {404, %{}, TestError.t()}
   def show(%{id: id}, _headers, _body) do

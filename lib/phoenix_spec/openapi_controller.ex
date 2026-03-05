@@ -21,17 +21,33 @@ defmodule PhoenixSpec.OpenAPIController do
   - `:router` — (required) your Phoenix router module
   - `:title` — (required) API title for the OpenAPI spec
   - `:version` — (required) API version string
+  - `:summary` — (optional) short summary of the API
+  - `:description` — (optional) longer description of the API
+  - `:terms_of_service` — (optional) URL to the terms of service
+  - `:contact` — (optional) contact map with `:name`, `:url`, `:email`
+  - `:license` — (optional) license map with `:name` and optional `:url`, `:identifier`
+  - `:servers` — (optional) list of server objects, each with `:url` and optional `:description`
   - `:openapi_url` — URL path where the JSON spec is served, used by Swagger UI (default: `"/openapi"`)
   - `:cache` — when `true`, the generated JSON is stored in `:persistent_term` after the first
     request and served from there on subsequent requests (default: `false`)
   """
 
+  @metadata_keys [
+    :title,
+    :version,
+    :summary,
+    :description,
+    :terms_of_service,
+    :contact,
+    :license,
+    :servers
+  ]
+
   defmacro __using__(opts) do
     router = Keyword.fetch!(opts, :router)
-    title = Keyword.fetch!(opts, :title)
-    version = Keyword.fetch!(opts, :version)
     openapi_url = Keyword.get(opts, :openapi_url, "/openapi")
     cache = Keyword.get(opts, :cache, false)
+    metadata_kv = Keyword.take(opts, @metadata_keys)
 
     quote do
       use Phoenix.Controller, formats: [:html, :json]
@@ -39,16 +55,14 @@ defmodule PhoenixSpec.OpenAPIController do
       def show(conn, _params) do
         json =
           if unquote(cache) do
-            PhoenixSpec.OpenAPIController.fetch_json(__MODULE__, unquote(router), %{
-              title: unquote(title),
-              version: unquote(version)
-            })
+            PhoenixSpec.OpenAPIController.fetch_json(
+              __MODULE__,
+              unquote(router),
+              %{unquote_splicing(metadata_kv)}
+            )
           else
             {:ok, spec} =
-              PhoenixSpec.generate_openapi(unquote(router), %{
-                title: unquote(title),
-                version: unquote(version)
-              })
+              PhoenixSpec.generate_openapi(unquote(router), %{unquote_splicing(metadata_kv)})
 
             Phoenix.json_library().encode!(spec)
           end

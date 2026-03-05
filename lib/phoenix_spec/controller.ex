@@ -40,13 +40,41 @@ defmodule PhoenixSpec.Controller do
   require Logger
   # Records extracted from deps/spectra/include/spectra_internal.hrl.
   require Record
-  Record.defrecordp(:sp_function_spec, Record.extract(:sp_function_spec, from_lib: "spectra/include/spectra_internal.hrl"))
-  Record.defrecordp(:sp_literal, Record.extract(:sp_literal, from_lib: "spectra/include/spectra_internal.hrl"))
-  Record.defrecordp(:sp_map, Record.extract(:sp_map, from_lib: "spectra/include/spectra_internal.hrl"))
-  Record.defrecordp(:sp_tuple, Record.extract(:sp_tuple, from_lib: "spectra/include/spectra_internal.hrl"))
-  Record.defrecordp(:sp_union, Record.extract(:sp_union, from_lib: "spectra/include/spectra_internal.hrl"))
-  Record.defrecordp(:sp_user_type_ref, Record.extract(:sp_user_type_ref, from_lib: "spectra/include/spectra_internal.hrl"))
-  Record.defrecordp(:literal_map_field, Record.extract(:literal_map_field, from_lib: "spectra/include/spectra_internal.hrl"))
+
+  Record.defrecordp(
+    :sp_function_spec,
+    Record.extract(:sp_function_spec, from_lib: "spectra/include/spectra_internal.hrl")
+  )
+
+  Record.defrecordp(
+    :sp_literal,
+    Record.extract(:sp_literal, from_lib: "spectra/include/spectra_internal.hrl")
+  )
+
+  Record.defrecordp(
+    :sp_map,
+    Record.extract(:sp_map, from_lib: "spectra/include/spectra_internal.hrl")
+  )
+
+  Record.defrecordp(
+    :sp_tuple,
+    Record.extract(:sp_tuple, from_lib: "spectra/include/spectra_internal.hrl")
+  )
+
+  Record.defrecordp(
+    :sp_union,
+    Record.extract(:sp_union, from_lib: "spectra/include/spectra_internal.hrl")
+  )
+
+  Record.defrecordp(
+    :sp_user_type_ref,
+    Record.extract(:sp_user_type_ref, from_lib: "spectra/include/spectra_internal.hrl")
+  )
+
+  Record.defrecordp(
+    :literal_map_field,
+    Record.extract(:literal_map_field, from_lib: "spectra/include/spectra_internal.hrl")
+  )
 
   defmacro __using__(opts) do
     quote do
@@ -175,7 +203,9 @@ defmodule PhoenixSpec.Controller do
         |> Plug.Conn.send_resp(status, encoded)
 
       {:error, errors} ->
-        Logger.error("PhoenixSpec: response encoding failed for #{inspect(controller)}.#{action}/3: #{inspect(errors)}")
+        Logger.error(
+          "PhoenixSpec: response encoding failed for #{inspect(controller)}.#{action}/3: #{inspect(errors)}"
+        )
 
         conn
         |> Plug.Conn.put_resp_content_type("application/json")
