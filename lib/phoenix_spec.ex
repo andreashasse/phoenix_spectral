@@ -57,12 +57,36 @@ defmodule PhoenixSpec do
   ## Parameters
 
   - `router` - A Phoenix router module
-  - `metadata` - Map with `:title` and `:version` keys
+  - `metadata` - Map with API metadata. Required keys:
+    - `:title` — API title
+    - `:version` — API version string
+
+    Optional keys:
+    - `:summary` — short one-line summary of the API (appears in `info.summary`)
+    - `:description` — longer description of the API (appears in `info.description`)
+    - `:terms_of_service` — URL string for terms of service
+    - `:contact` — map with `:name`, `:url`, and/or `:email`
+    - `:license` — map with `:name` and optional `:url` or `:identifier`
+    - `:servers` — list of server maps, each with `:url` and optional `:description`
 
   ## Returns
 
   - `{:ok, openapi_spec}` - Complete OpenAPI 3.0 specification as a map
   - `{:error, errors}` - List of errors if generation fails
+
+  ## Parameter descriptions via typed type aliases
+
+  To add a description to a path or header parameter, define a named type alias
+  for the parameter's type and annotate it with `spectral description: "..."`:
+
+      spectral description: "The user's unique identifier"
+      @type user_id :: String.t()
+
+      @spec show(%{id: user_id()}, %{}, nil) :: {200, %{}, User.t()}
+      def show(%{id: id}, _headers, _body), do: ...
+
+  PhoenixSpec reads the type's metadata when building the spec and adds the
+  `description` field to the parameter object in the OpenAPI output.
   """
   @spec generate_openapi(module(), map()) :: {:ok, map()} | {:error, list()}
   def generate_openapi(router, metadata) do

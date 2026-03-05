@@ -102,5 +102,105 @@ defmodule PhoenixSpecTest do
       response = spec["paths"]["/items/{id}"]["get"]["responses"]["200"]
       assert response["headers"] == nil or response["headers"] == %{}
     end
+
+    test "path parameter using a typed alias with spectral description gets description in spec" do
+      spec = generate_spec()
+
+      params = spec["paths"]["/users/{id}"]["get"]["parameters"]
+      id_param = Enum.find(params, &(&1["name"] == "id"))
+      assert id_param["description"] == "The user's unique identifier"
+    end
+
+    test "path parameter with plain type has no description in spec" do
+      spec = generate_spec()
+
+      # update uses %{id: String.t()} directly, not a named type
+      params = spec["paths"]["/users/{id}"]["put"]["parameters"]
+      id_param = Enum.find(params, &(&1["name"] == "id"))
+      refute Map.has_key?(id_param, "description")
+    end
+  end
+
+  describe "generate_openapi/2 with rich metadata" do
+    test "summary is included in info" do
+      {:ok, spec} =
+        PhoenixSpec.generate_openapi(TestRouter, %{
+          title: "Test API",
+          version: "1.0.0",
+          summary: "A short summary"
+        })
+
+      assert spec["info"]["summary"] == "A short summary"
+    end
+
+    test "description is included in info" do
+      {:ok, spec} =
+        PhoenixSpec.generate_openapi(TestRouter, %{
+          title: "Test API",
+          version: "1.0.0",
+          description: "A longer description"
+        })
+
+      assert spec["info"]["description"] == "A longer description"
+    end
+
+    test "terms_of_service is included in info" do
+      {:ok, spec} =
+        PhoenixSpec.generate_openapi(TestRouter, %{
+          title: "Test API",
+          version: "1.0.0",
+          terms_of_service: "https://example.com/terms"
+        })
+
+      assert spec["info"]["termsOfService"] == "https://example.com/terms"
+    end
+
+    test "contact is included in info" do
+      {:ok, spec} =
+        PhoenixSpec.generate_openapi(TestRouter, %{
+          title: "Test API",
+          version: "1.0.0",
+          contact: %{name: "Support", url: "https://example.com", email: "support@example.com"}
+        })
+
+      assert spec["info"]["contact"]["name"] == "Support"
+      assert spec["info"]["contact"]["email"] == "support@example.com"
+    end
+
+    test "license is included in info" do
+      {:ok, spec} =
+        PhoenixSpec.generate_openapi(TestRouter, %{
+          title: "Test API",
+          version: "1.0.0",
+          license: %{name: "MIT", url: "https://opensource.org/licenses/MIT"}
+        })
+
+      assert spec["info"]["license"]["name"] == "MIT"
+    end
+
+    test "servers list is included at top level" do
+      {:ok, spec} =
+        PhoenixSpec.generate_openapi(TestRouter, %{
+          title: "Test API",
+          version: "1.0.0",
+          servers: [
+            %{url: "https://api.example.com", description: "Production"},
+            %{url: "http://localhost:4000", description: "Local"}
+          ]
+        })
+
+      assert length(spec["servers"]) == 2
+      assert hd(spec["servers"])["url"] == "https://api.example.com"
+      assert hd(spec["servers"])["description"] == "Production"
+    end
+
+    test "minimal metadata without optional fields produces no extra info keys" do
+      {:ok, spec} =
+        PhoenixSpec.generate_openapi(TestRouter, %{title: "Test API", version: "1.0.0"})
+
+      refute Map.has_key?(spec["info"], "summary")
+      refute Map.has_key?(spec["info"], "description")
+      refute Map.has_key?(spec, "servers")
+    end
   end
 end

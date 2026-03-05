@@ -1,6 +1,9 @@
 defmodule TestUserController do
   use PhoenixSpec.Controller, formats: [:json]
 
+  spectral(description: "The user's unique identifier")
+  @type test_user_id :: String.t()
+
   @spec index(%{}, %{}, nil) :: {200, %{}, [TestUser.t()]}
   def index(_path_args, _headers, _body) do
     {200, %{}, [%TestUser{id: 1, name: "Alice", email: "alice@example.com"}]}
@@ -8,7 +11,7 @@ defmodule TestUserController do
 
   spectral(summary: "Get user", description: "Returns a user by ID")
 
-  @spec show(%{id: String.t()}, %{}, nil) ::
+  @spec show(%{id: test_user_id()}, %{}, nil) ::
           {200, %{}, TestUser.t()} | {404, %{}, TestError.t()}
   def show(%{id: id}, _headers, _body) do
     case id do

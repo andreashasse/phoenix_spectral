@@ -12,13 +12,13 @@ defmodule PhoenixSpec.Controller do
       defmodule MyAppWeb.UserController do
         use PhoenixSpec.Controller
 
-        @spec show(map(), %{}, nil) :: {200, map(), User.t()}
+        @spec show(%{id: String.t()}, %{}, nil) :: {200, %{}, User.t()}
         def show(path_args, _headers, _body) do
           user = Repo.get!(User, path_args.id)
           {200, %{}, user}
         end
 
-        @spec create(map(), %{}, UserInput.t()) :: {201, map(), User.t()} | {422, map(), Error.t()}
+        @spec create(%{}, %{}, UserInput.t()) :: {201, %{}, User.t()} | {422, %{}, Error.t()}
         def create(_path_args, _headers, body) do
           case Repo.insert(body) do
             {:ok, user} -> {201, %{}, user}

@@ -26,6 +26,22 @@ defmodule PhoenixSpec.OpenAPIControllerTest do
       cache: true
   end
 
+  defmodule TestOpenAPIControllerRichMetadata do
+    use PhoenixSpec.OpenAPIController,
+      router: TestRouter,
+      title: "Rich API",
+      version: "2.0.0",
+      summary: "A short summary",
+      description: "A longer description",
+      terms_of_service: "https://example.com/terms",
+      contact: %{name: "Support", url: "https://example.com", email: "support@example.com"},
+      license: %{name: "MIT", url: "https://opensource.org/licenses/MIT"},
+      servers: [
+        %{url: "https://api.example.com", description: "Production"},
+        %{url: "http://localhost:4000", description: "Local"}
+      ]
+  end
+
   describe "show/2" do
     test "returns 200 with application/json content type" do
       conn = conn(:get, "/openapi") |> TestOpenAPIController.show(%{})
@@ -96,6 +112,61 @@ defmodule PhoenixSpec.OpenAPIControllerTest do
       conn(:get, "/openapi") |> TestOpenAPIController.show(%{})
 
       assert :persistent_term.get(@no_cache_key, nil) == nil
+    end
+  end
+
+  describe "show/2 with rich metadata" do
+    test "summary is included in info" do
+      conn = conn(:get, "/openapi") |> TestOpenAPIControllerRichMetadata.show(%{})
+
+      body = Jason.decode!(conn.resp_body)
+      assert body["info"]["summary"] == "A short summary"
+    end
+
+    test "description is included in info" do
+      conn = conn(:get, "/openapi") |> TestOpenAPIControllerRichMetadata.show(%{})
+
+      body = Jason.decode!(conn.resp_body)
+      assert body["info"]["description"] == "A longer description"
+    end
+
+    test "terms_of_service is included in info" do
+      conn = conn(:get, "/openapi") |> TestOpenAPIControllerRichMetadata.show(%{})
+
+      body = Jason.decode!(conn.resp_body)
+      assert body["info"]["termsOfService"] == "https://example.com/terms"
+    end
+
+    test "contact is included in info" do
+      conn = conn(:get, "/openapi") |> TestOpenAPIControllerRichMetadata.show(%{})
+
+      body = Jason.decode!(conn.resp_body)
+      assert body["info"]["contact"]["name"] == "Support"
+      assert body["info"]["contact"]["email"] == "support@example.com"
+    end
+
+    test "license is included in info" do
+      conn = conn(:get, "/openapi") |> TestOpenAPIControllerRichMetadata.show(%{})
+
+      body = Jason.decode!(conn.resp_body)
+      assert body["info"]["license"]["name"] == "MIT"
+    end
+
+    test "servers list is included at top level" do
+      conn = conn(:get, "/openapi") |> TestOpenAPIControllerRichMetadata.show(%{})
+
+      body = Jason.decode!(conn.resp_body)
+      assert length(body["servers"]) == 2
+      assert hd(body["servers"])["url"] == "https://api.example.com"
+    end
+
+    test "minimal metadata produces no extra info keys" do
+      conn = conn(:get, "/openapi") |> TestOpenAPIController.show(%{})
+
+      body = Jason.decode!(conn.resp_body)
+      refute Map.has_key?(body["info"], "summary")
+      refute Map.has_key?(body["info"], "description")
+      refute Map.has_key?(body, "servers")
     end
   end
 
