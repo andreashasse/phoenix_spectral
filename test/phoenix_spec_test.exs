@@ -111,6 +111,16 @@ defmodule PhoenixSpecTest do
       assert id_param["description"] == "The user's unique identifier"
     end
 
+    test "header parameter from a remote type appears in spec" do
+      spec = generate_header_spec()
+
+      params = spec["paths"]["/items/ping"]["get"]["parameters"]
+      header_param = Enum.find(params, &(&1["name"] == "x-request-id"))
+      assert header_param != nil
+      assert header_param["required"] == true
+      assert header_param["in"] == "header"
+    end
+
     test "path parameter with plain type has no description in spec" do
       spec = generate_spec()
 

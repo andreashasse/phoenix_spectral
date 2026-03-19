@@ -3,6 +3,10 @@ defmodule Example.Application do
 
   @impl true
   def start(_type, _args) do
+    Application.put_env(:spectra, :codecs, %{
+      {DateTime, {:type, :t, 0}} => Spectral.Codec.DateTime
+    })
+
     children = [
       Example.Endpoint
     ]

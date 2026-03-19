@@ -26,7 +26,7 @@ defmodule PhoenixSpec.MixProject do
   defp deps do
     [
       {:phoenix, "~> 1.7"},
-      {:spectral, github: "andreashasse/spectral", branch: "update-spectra-0.7.0"},
+      {:spectral, github: "andreashasse/spectral", branch: "codec-types-v2", override: true},
       {:jason, "~> 1.0", only: :test}
     ]
   end

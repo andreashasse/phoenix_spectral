@@ -28,6 +28,11 @@ defmodule TestHeaderController do
     {200, %{:"x-count" => "not-an-integer"}, []}
   end
 
+  @spec ping(%{}, TestRemoteTypes.request_headers(), nil) :: {200, %{}, TestUser.t()}
+  def ping(_path_args, headers, _body) do
+    {200, %{}, %TestUser{id: 1, name: headers[:"x-request-id"], email: "test@example.com"}}
+  end
+
   @spec search(%{id: String.t()}, %{}, nil) ::
           {200, count_response_headers(), TestUser.t()} | {404, %{}, TestError.t()}
   def search(%{id: id}, _headers, _body) do

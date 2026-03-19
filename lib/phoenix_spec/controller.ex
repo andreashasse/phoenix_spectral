@@ -144,7 +144,7 @@ defmodule PhoenixSpec.Controller do
   defp decode_path_args(conn, controller, action) do
     {path_args_type, _headers_type, _body_type} = lookup_action_types(controller, action)
     type_info = controller.__spectra_type_info__()
-    sp_map(fields: fields) = PhoenixSpec.resolve_type_ref(path_args_type, type_info)
+    fields = PhoenixSpec.map_fields(path_args_type, type_info)
     raw_path_params = conn.path_params
 
     Enum.reduce_while(fields, {:ok, %{}}, fn field, {:ok, acc} ->
@@ -168,7 +168,7 @@ defmodule PhoenixSpec.Controller do
   defp decode_request_headers(conn, controller, action) do
     {_path_args_type, headers_type, _body_type} = lookup_action_types(controller, action)
     type_info = controller.__spectra_type_info__()
-    sp_map(fields: fields) = PhoenixSpec.resolve_type_ref(headers_type, type_info)
+    fields = PhoenixSpec.map_fields(headers_type, type_info)
     raw_headers = conn.req_headers
 
     Enum.reduce_while(fields, {:ok, %{}}, fn field, {:ok, acc} ->
@@ -254,7 +254,7 @@ defmodule PhoenixSpec.Controller do
 
   defp encode_response_headers(conn, type_info, action, status, response_headers) do
     headers_type = lookup_response_headers_type(type_info, action, status)
-    sp_map(fields: fields) = PhoenixSpec.resolve_type_ref(headers_type, type_info)
+    fields = PhoenixSpec.map_fields(headers_type, type_info)
 
     Enum.reduce(fields, conn, fn field, acc ->
       literal_map_field(kind: kind, name: name, binary_name: binary_name, val_type: val_type) =

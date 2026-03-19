@@ -105,6 +105,24 @@ defmodule PhoenixSpec.ControllerTest do
     end
   end
 
+  describe "PhoenixSpec.Controller with remote type headers" do
+    test "returns 400 when a required remote-type header is missing" do
+      conn = dispatch_header(:ping, %{}, [])
+
+      assert conn.status == 400
+      body = Jason.decode!(conn.resp_body)
+      assert [%{"type" => "missing_data", "location" => ["x-request-id"]}] = body["details"]
+    end
+
+    test "returns 200 when a required remote-type header is present" do
+      conn = dispatch_header(:ping, %{}, [{"x-request-id", "req-123"}])
+
+      assert conn.status == 200
+      body = Jason.decode!(conn.resp_body)
+      assert body["name"] == "req-123"
+    end
+  end
+
   describe "PhoenixSpec.Controller with typed response headers" do
     defp dispatch_header_action(action, path_params \\ %{}) do
       conn(:get, "/", nil)

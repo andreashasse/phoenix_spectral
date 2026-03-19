@@ -48,6 +48,11 @@ defmodule PhoenixSpec do
     Record.extract(:sp_union, from_lib: "spectra/include/spectra_internal.hrl")
   )
 
+  Record.defrecordp(
+    :sp_remote_type,
+    Record.extract(:sp_remote_type, from_lib: "spectra/include/spectra_internal.hrl")
+  )
+
   @doc """
   Generates an OpenAPI 3.0 specification from a Phoenix router module.
 
@@ -108,13 +113,7 @@ defmodule PhoenixSpec do
     {path_args_type, headers_type, body_type, return_type} =
       extract_handler_type(controller, action)
 
-    doc =
-      case Spectral.TypeInfo.get_function_doc(controller.__spectra_type_info__(), action, 3) do
-        {:ok, doc} -> doc
-        {:error, _} -> %{}
-      end
-
-    Spectral.OpenAPI.endpoint(verb, phoenix_path_to_openapi_path(path), doc)
+    Spectral.OpenAPI.endpoint(verb, phoenix_path_to_openapi_path(path), controller, action, 3)
     |> maybe_add_request_body(verb, controller, body_type)
     |> add_header_parameters(controller, headers_type)
     |> add_path_parameters(controller, path_args_type)
@@ -140,7 +139,7 @@ defmodule PhoenixSpec do
 
   defp add_response_headers(response, controller, headers_type) do
     type_info = controller.__spectra_type_info__()
-    sp_map(fields: fields) = resolve_type_ref(headers_type, type_info)
+    fields = map_fields(headers_type, type_info)
 
     Enum.reduce(fields, response, fn field, acc ->
       literal_map_field(kind: kind, binary_name: binary_name, val_type: val_type) = field
@@ -176,25 +175,34 @@ defmodule PhoenixSpec do
 
   defp add_header_parameters(endpoint, controller, headers_type) do
     type_info = controller.__spectra_type_info__()
-    sp_map(fields: fields) = resolve_type_ref(headers_type, type_info)
+    fields = map_fields(headers_type, type_info)
 
     Enum.reduce(fields, endpoint, fn field, ep ->
       literal_map_field(kind: kind, binary_name: binary_name, val_type: val_type) = field
 
-      param_spec =
-        %{name: binary_name, in: :header, required: kind == :exact, schema: val_type}
-        |> maybe_put_type_description(val_type, type_info)
+      param_spec = %{
+        name: binary_name,
+        in: :header,
+        required: kind == :exact,
+        schema: val_type
+      }
 
       Spectral.OpenAPI.with_parameter(ep, controller, param_spec)
     end)
   end
 
-  def resolve_type_ref(sp_user_type_ref(type_name: name), type_info) do
+  def map_fields(sp_user_type_ref(type_name: name), type_info) do
     {:ok, resolved} = Spectral.TypeInfo.find_type(type_info, name, 0)
-    resolve_type_ref(resolved, type_info)
+    map_fields(resolved, type_info)
   end
 
-  def resolve_type_ref(type, _type_info), do: type
+  def map_fields(sp_remote_type(mfargs: {mod, name, args}), _type_info) do
+    remote_type_info = mod.__spectra_type_info__()
+    {:ok, resolved} = Spectral.TypeInfo.find_type(remote_type_info, name, length(args))
+    map_fields(resolved, remote_type_info)
+  end
+
+  def map_fields(sp_map(fields: fields), _type_info), do: fields
 
   @path_param_regex ~r/:([a-zA-Z_][a-zA-Z0-9_]*)/
 
@@ -204,29 +212,21 @@ defmodule PhoenixSpec do
 
   defp add_path_parameters(endpoint, controller, path_args_type) do
     type_info = controller.__spectra_type_info__()
-    sp_map(fields: fields) = resolve_type_ref(path_args_type, type_info)
+    fields = map_fields(path_args_type, type_info)
 
     Enum.reduce(fields, endpoint, fn field, ep ->
       literal_map_field(binary_name: binary_name, val_type: val_type) = field
 
-      param_spec =
-        %{name: binary_name, in: :path, required: true, schema: val_type}
-        |> maybe_put_type_description(val_type, type_info)
+      param_spec = %{
+        name: binary_name,
+        in: :path,
+        required: true,
+        schema: val_type
+      }
 
       Spectral.OpenAPI.with_parameter(ep, controller, param_spec)
     end)
   end
-
-  defp maybe_put_type_description(param_spec, sp_user_type_ref(type_name: name), type_info) do
-    {:ok, type} = Spectral.TypeInfo.find_type(type_info, name, 0)
-
-    case :spectra_type.get_meta(type) do
-      %{doc: doc} -> Map.merge(param_spec, doc)
-      _ -> param_spec
-    end
-  end
-
-  defp maybe_put_type_description(param_spec, _val_type, _type_info), do: param_spec
 
   defp http_method_supports_body?(:post), do: true
   defp http_method_supports_body?(:put), do: true
