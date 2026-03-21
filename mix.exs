@@ -26,7 +26,7 @@ defmodule PhoenixSpec.MixProject do
   defp deps do
     [
       {:phoenix, "~> 1.7"},
-      {:spectral, github: "andreashasse/spectral", branch: "minor-fixes", override: true},
+      {:spectral, "~> 0.8.1", override: true},
       {:jason, "~> 1.0", only: [:dev, :test]},
       {:credo, "~> 1.7", only: [:dev, :test], runtime: false},
       {:dialyxir, "~> 1.4", only: [:dev, :test], runtime: false}
