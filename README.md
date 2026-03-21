@@ -1,6 +1,6 @@
 # PhoenixSpec
 
-PhoenixSpec integrates [Spectral](https://github.com/andreashasse/spectral) with Phoenix, making controller typespecs the single source of truth for OpenAPI 3.0 spec generation and request/response validation. Define your types once — PhoenixSpec derives the API docs and enforces them at runtime.
+PhoenixSpec integrates [Spectral](https://github.com/andreashasse/spectral) with Phoenix, making controller typespecs the single source of truth for OpenAPI 3.1 spec generation and request/response validation. Define your types once — PhoenixSpec derives the API docs and enforces them at runtime.
 
 ## Installation
 
