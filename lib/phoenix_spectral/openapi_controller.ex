@@ -1,11 +1,11 @@
-defmodule PhoenixSpec.OpenAPIController do
+defmodule PhoenixSpectral.OpenAPIController do
   @moduledoc """
   A plug-and-play Phoenix controller that serves the OpenAPI spec and Swagger UI.
 
   ## Usage
 
       defmodule MyAppWeb.OpenAPIController do
-        use PhoenixSpec.OpenAPIController,
+        use PhoenixSpectral.OpenAPIController,
           router: MyAppWeb.Router,
           title: "My API",
           version: "1.0.0"
@@ -55,14 +55,14 @@ defmodule PhoenixSpec.OpenAPIController do
       def show(conn, _params) do
         json =
           if unquote(cache) do
-            PhoenixSpec.OpenAPIController.fetch_json(
+            PhoenixSpectral.OpenAPIController.fetch_json(
               __MODULE__,
               unquote(router),
               %{unquote_splicing(metadata_kv)}
             )
           else
             {:ok, iodata} =
-              PhoenixSpec.generate_openapi(unquote(router), %{unquote_splicing(metadata_kv)})
+              PhoenixSpectral.generate_openapi(unquote(router), %{unquote_splicing(metadata_kv)})
 
             IO.iodata_to_binary(iodata)
           end
@@ -73,7 +73,7 @@ defmodule PhoenixSpec.OpenAPIController do
       end
 
       def swagger(conn, _params) do
-        html = PhoenixSpec.OpenAPIController.swagger_html(unquote(openapi_url))
+        html = PhoenixSpectral.OpenAPIController.swagger_html(unquote(openapi_url))
 
         conn
         |> put_resp_content_type("text/html")
@@ -88,7 +88,7 @@ defmodule PhoenixSpec.OpenAPIController do
 
     case :persistent_term.get(key, :not_cached) do
       :not_cached ->
-        {:ok, iodata} = PhoenixSpec.generate_openapi(router, metadata)
+        {:ok, iodata} = PhoenixSpectral.generate_openapi(router, metadata)
         json = IO.iodata_to_binary(iodata)
         :persistent_term.put(key, json)
         json

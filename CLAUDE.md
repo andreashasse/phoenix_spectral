@@ -4,15 +4,15 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-PhoenixSpec integrates Spectral (Elixir type-driven validation/OpenAPI generation) with Phoenix. Controller typespecs become the single source of truth for OpenAPI docs and request/response validation. Analogous to how `elli_openapi` integrates `spectra` with Elli.
+PhoenixSpectral integrates Spectral (Elixir type-driven validation/OpenAPI generation) with Phoenix. Controller typespecs become the single source of truth for OpenAPI docs and request/response validation. Analogous to how `elli_openapi` integrates `spectra` with Elli.
 
 ## Commands
 
 ```bash
 mix compile          # Build
 mix test             # Run all tests
-mix test test/phoenix_spec_test.exs           # Run specific test file
-mix test test/phoenix_spec_test.exs:92        # Run specific test by line
+mix test test/phoenix_spectral_test.exs           # Run specific test file
+mix test test/phoenix_spectral_test.exs:92        # Run specific test by line
 mix format            # Format code
 mix format --check-formatted  # Check formatting
 ```
@@ -21,7 +21,7 @@ mix format --check-formatted  # Check formatting
 
 Two modules form the core:
 
-### `PhoenixSpec` (lib/phoenix_spec.ex) — OpenAPI generation
+### `PhoenixSpectral` (lib/phoenix_spectral.ex) — OpenAPI generation
 Takes a Phoenix router + metadata, produces an OpenAPI spec. Pipeline:
 1. `Phoenix.Router.routes(router)` → list of `%{verb, path, plug, plug_opts}`
 2. Filter to controllers with `__spectra_type_info__/0` (i.e., those using Spectral)
@@ -30,8 +30,8 @@ Takes a Phoenix router + metadata, produces an OpenAPI spec. Pipeline:
 5. Build endpoints via `Spectral.OpenAPI` builder API
 6. `Spectral.OpenAPI.endpoints_to_openapi/2` produces the final spec
 
-### `PhoenixSpec.Controller` (lib/phoenix_spec/controller.ex) — Runtime plug
-`use PhoenixSpec.Controller` implies `use Phoenix.Controller` + `use Spectral`. Overrides `action/2` to:
+### `PhoenixSpectral.Controller` (lib/phoenix_spectral/controller.ex) — Runtime plug
+`use PhoenixSpectral.Controller` implies `use Phoenix.Controller` + `use Spectral`. Overrides `action/2` to:
 - Call handlers as 3-arity `action(path_args, headers, body)` instead of Phoenix's `action(conn, params)`
 - Encode struct response bodies via `Spectral.encode`
 - Return 400 on `FunctionClauseError`, raise `ArgumentError` on non-struct response bodies
@@ -52,7 +52,7 @@ type_info = controller.__spectra_type_info__()
 {:ok, func_specs} = Spectral.TypeInfo.find_function(type_info, :action_name, 3)
 ```
 
-Individual sp_type records are defined via `Record.defrecordp` in `PhoenixSpec` (sourced from `deps/spectra/include/spectra_internal.hrl`). Use record syntax for pattern matching:
+Individual sp_type records are defined via `Record.defrecordp` in `PhoenixSpectral` (sourced from `deps/spectra/include/spectra_internal.hrl`). Use record syntax for pattern matching:
 ```elixir
 sp_union(types: types)                          # not {:sp_union, types, _meta}
 sp_tuple(fields: [status, headers, body])       # not {:sp_tuple, [...], _meta}

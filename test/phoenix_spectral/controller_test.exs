@@ -1,4 +1,4 @@
-defmodule PhoenixSpec.ControllerTest do
+defmodule PhoenixSpectral.ControllerTest do
   use ExUnit.Case
 
   import Plug.Test
@@ -31,7 +31,7 @@ defmodule PhoenixSpec.ControllerTest do
   defp action_from_path(:post, "/users"), do: :create
   defp action_from_path(:put, "/users/:id"), do: :update
 
-  describe "PhoenixSpec.Controller with invalid request body" do
+  describe "PhoenixSpectral.Controller with invalid request body" do
     test "returns 400 with field-level detail when a field has the wrong type" do
       conn = dispatch(:post, "/users", %{"name" => 123, "email" => "test@example.com"})
 
@@ -63,7 +63,7 @@ defmodule PhoenixSpec.ControllerTest do
     end
   end
 
-  describe "PhoenixSpec.Controller with valid request body" do
+  describe "PhoenixSpectral.Controller with valid request body" do
     test "returns 201 on valid create" do
       conn = dispatch(:post, "/users", %{"name" => "Alice", "email" => "alice@example.com"})
 
@@ -74,7 +74,7 @@ defmodule PhoenixSpec.ControllerTest do
     end
   end
 
-  describe "PhoenixSpec.Controller with request headers" do
+  describe "PhoenixSpectral.Controller with request headers" do
     test "returns 400 when a required header is missing" do
       conn = dispatch_header(:show, %{"id" => "1"}, [])
 
@@ -105,7 +105,7 @@ defmodule PhoenixSpec.ControllerTest do
     end
   end
 
-  describe "PhoenixSpec.Controller with remote type headers" do
+  describe "PhoenixSpectral.Controller with remote type headers" do
     test "returns 400 when a required remote-type header is missing" do
       conn = dispatch_header(:ping, %{}, [])
 
@@ -123,7 +123,7 @@ defmodule PhoenixSpec.ControllerTest do
     end
   end
 
-  describe "PhoenixSpec.Controller with typed response headers" do
+  describe "PhoenixSpectral.Controller with typed response headers" do
     defp dispatch_header_action(action, path_params \\ %{}) do
       conn(:get, "/", nil)
       |> Map.put(:path_params, path_params)
@@ -163,7 +163,7 @@ defmodule PhoenixSpec.ControllerTest do
     end
   end
 
-  describe "PhoenixSpec.Controller with integer path arg type" do
+  describe "PhoenixSpectral.Controller with integer path arg type" do
     defp dispatch_integer_id(raw_id) do
       conn =
         conn(:get, "/", nil)
@@ -193,7 +193,7 @@ defmodule PhoenixSpec.ControllerTest do
     end
   end
 
-  describe "PhoenixSpec.Controller with path args" do
+  describe "PhoenixSpectral.Controller with path args" do
     test "path args are decoded and passed as atom-keyed map" do
       conn =
         dispatch(:put, "/users/:id", %{"name" => "Bob", "email" => "bob@example.com"}, %{

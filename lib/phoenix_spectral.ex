@@ -1,13 +1,13 @@
-defmodule PhoenixSpec do
+defmodule PhoenixSpectral do
   @moduledoc """
   Generates OpenAPI 3.0 specifications from Phoenix router and typed controllers.
 
-  Controllers that `use PhoenixSpec.Controller` and define typespecs on their
+  Controllers that `use PhoenixSpectral.Controller` and define typespecs on their
   action functions become the single source of truth for OpenAPI documentation.
 
   ## Usage
 
-      {:ok, spec} = PhoenixSpec.generate_openapi(MyAppWeb.Router, %{title: "My API", version: "1.0.0"})
+      {:ok, spec} = PhoenixSpectral.generate_openapi(MyAppWeb.Router, %{title: "My API", version: "1.0.0"})
   """
 
   # Records extracted from deps/spectra/include/spectra_internal.hrl.
@@ -90,7 +90,7 @@ defmodule PhoenixSpec do
       @spec show(%{id: user_id()}, %{}, nil) :: {200, %{}, User.t()}
       def show(%{id: id}, _headers, _body), do: ...
 
-  PhoenixSpec reads the type's metadata when building the spec and adds the
+  PhoenixSpectral reads the type's metadata when building the spec and adds the
   `description` field to the parameter object in the OpenAPI output.
   """
   @spec generate_openapi(module(), map()) :: {:ok, iodata()} | {:error, list()}

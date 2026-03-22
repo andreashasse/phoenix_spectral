@@ -1,5 +1,5 @@
 defmodule Example.UserController do
-  use PhoenixSpec.Controller, formats: [:json]
+  use PhoenixSpectral.Controller, formats: [:json]
 
   alias Example.Types.{User, UserId, UserInput, Error}
 

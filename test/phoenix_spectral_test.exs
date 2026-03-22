@@ -1,14 +1,16 @@
-defmodule PhoenixSpecTest do
+defmodule PhoenixSpectralTest do
   use ExUnit.Case
 
   defp generate_spec do
-    {:ok, json} = PhoenixSpec.generate_openapi(TestRouter, %{title: "Test API", version: "1.0.0"})
+    {:ok, json} =
+      PhoenixSpectral.generate_openapi(TestRouter, %{title: "Test API", version: "1.0.0"})
+
     Jason.decode!(json)
   end
 
   defp generate_header_spec do
     {:ok, json} =
-      PhoenixSpec.generate_openapi(TestHeaderRouter, %{title: "Test API", version: "1.0.0"})
+      PhoenixSpectral.generate_openapi(TestHeaderRouter, %{title: "Test API", version: "1.0.0"})
 
     Jason.decode!(json)
   end
@@ -134,7 +136,7 @@ defmodule PhoenixSpecTest do
   describe "generate_openapi/3 with pre_encoded option and rich metadata" do
     test "summary is included in info" do
       {:ok, spec} =
-        PhoenixSpec.generate_openapi(
+        PhoenixSpectral.generate_openapi(
           TestRouter,
           %{
             title: "Test API",
@@ -149,7 +151,7 @@ defmodule PhoenixSpecTest do
 
     test "description is included in info" do
       {:ok, spec} =
-        PhoenixSpec.generate_openapi(
+        PhoenixSpectral.generate_openapi(
           TestRouter,
           %{
             title: "Test API",
@@ -164,7 +166,7 @@ defmodule PhoenixSpecTest do
 
     test "terms_of_service is included in info" do
       {:ok, spec} =
-        PhoenixSpec.generate_openapi(
+        PhoenixSpectral.generate_openapi(
           TestRouter,
           %{
             title: "Test API",
@@ -179,7 +181,7 @@ defmodule PhoenixSpecTest do
 
     test "contact is included in info" do
       {:ok, spec} =
-        PhoenixSpec.generate_openapi(
+        PhoenixSpectral.generate_openapi(
           TestRouter,
           %{
             title: "Test API",
@@ -195,7 +197,7 @@ defmodule PhoenixSpecTest do
 
     test "license is included in info" do
       {:ok, spec} =
-        PhoenixSpec.generate_openapi(
+        PhoenixSpectral.generate_openapi(
           TestRouter,
           %{
             title: "Test API",
@@ -210,7 +212,7 @@ defmodule PhoenixSpecTest do
 
     test "servers list is included at top level" do
       {:ok, spec} =
-        PhoenixSpec.generate_openapi(
+        PhoenixSpectral.generate_openapi(
           TestRouter,
           %{
             title: "Test API",
@@ -230,7 +232,7 @@ defmodule PhoenixSpecTest do
 
     test "minimal metadata without optional fields produces no extra info keys" do
       {:ok, spec} =
-        PhoenixSpec.generate_openapi(TestRouter, %{title: "Test API", version: "1.0.0"}, [
+        PhoenixSpectral.generate_openapi(TestRouter, %{title: "Test API", version: "1.0.0"}, [
           :pre_encoded
         ])
 

@@ -1,8 +1,8 @@
-defmodule PhoenixSpec.Controller do
+defmodule PhoenixSpectral.Controller do
   @moduledoc """
   A Phoenix controller module that validates requests and responses using typespecs.
 
-  When you `use PhoenixSpec.Controller`, your controller actions use a 3-arity
+  When you `use PhoenixSpectral.Controller`, your controller actions use a 3-arity
   convention `(path_args, headers, body)` instead of the standard Phoenix
   `(conn, params)`. Request data is decoded and validated against your typespecs,
   and responses are encoded automatically.
@@ -10,7 +10,7 @@ defmodule PhoenixSpec.Controller do
   ## Usage
 
       defmodule MyAppWeb.UserController do
-        use PhoenixSpec.Controller
+        use PhoenixSpectral.Controller
 
         @spec show(%{id: String.t()}, %{}, nil) :: {200, %{}, User.t()}
         def show(path_args, _headers, _body) do
@@ -81,7 +81,7 @@ defmodule PhoenixSpec.Controller do
       use Phoenix.Controller, unquote(opts)
       use Spectral
 
-      @before_compile PhoenixSpec.Controller
+      @before_compile PhoenixSpectral.Controller
     end
   end
 
@@ -91,7 +91,7 @@ defmodule PhoenixSpec.Controller do
 
       def action(conn, _opts) do
         action_name = Phoenix.Controller.action_name(conn)
-        PhoenixSpec.Controller.dispatch(conn, __MODULE__, action_name)
+        PhoenixSpectral.Controller.dispatch(conn, __MODULE__, action_name)
       end
     end
   end
@@ -105,7 +105,7 @@ defmodule PhoenixSpec.Controller do
           send_typed_response(conn, controller, action, status, response_headers, response_body)
 
         other ->
-          raise "PhoenixSpec action #{inspect(controller)}.#{action}/3 must return " <>
+          raise "PhoenixSpectral action #{inspect(controller)}.#{action}/3 must return " <>
                   "{status, headers, body}, got: #{inspect(other)}"
       end
     else
@@ -144,7 +144,7 @@ defmodule PhoenixSpec.Controller do
   defp decode_path_args(conn, controller, action) do
     {path_args_type, _headers_type, _body_type} = lookup_action_types(controller, action)
     type_info = controller.__spectra_type_info__()
-    fields = PhoenixSpec.map_fields(path_args_type, type_info)
+    fields = PhoenixSpectral.map_fields(path_args_type, type_info)
     raw_path_params = conn.path_params
 
     Enum.reduce_while(fields, {:ok, %{}}, fn field, {:ok, acc} ->
@@ -155,7 +155,7 @@ defmodule PhoenixSpec.Controller do
           decode_value(raw_value, name, type_info, val_type, acc)
 
         :error ->
-          raise "PhoenixSpec: path param #{inspect(binary_name)} declared in typespec for " <>
+          raise "PhoenixSpectral: path param #{inspect(binary_name)} declared in typespec for " <>
                   "#{inspect(controller)}.#{action}/3 is not present in conn.path_params. " <>
                   "Does the router path match the typespec?"
       end
@@ -165,7 +165,7 @@ defmodule PhoenixSpec.Controller do
   defp decode_request_headers(conn, controller, action) do
     {_path_args_type, headers_type, _body_type} = lookup_action_types(controller, action)
     type_info = controller.__spectra_type_info__()
-    fields = PhoenixSpec.map_fields(headers_type, type_info)
+    fields = PhoenixSpectral.map_fields(headers_type, type_info)
     raw_headers = conn.req_headers
 
     Enum.reduce_while(fields, {:ok, %{}}, fn field, {:ok, acc} ->
@@ -205,7 +205,7 @@ defmodule PhoenixSpec.Controller do
 
       {:error, errors} ->
         Logger.error(
-          "PhoenixSpec: response encoding failed for #{inspect(controller)}.#{action}/3: #{inspect(errors)}"
+          "PhoenixSpectral: response encoding failed for #{inspect(controller)}.#{action}/3: #{inspect(errors)}"
         )
 
         conn
@@ -255,7 +255,7 @@ defmodule PhoenixSpec.Controller do
 
   defp encode_response_headers(conn, type_info, action, status, response_headers) do
     headers_type = lookup_response_headers_type(type_info, action, status)
-    fields = PhoenixSpec.map_fields(headers_type, type_info)
+    fields = PhoenixSpectral.map_fields(headers_type, type_info)
 
     Enum.reduce(fields, conn, fn field, acc ->
       literal_map_field(kind: kind, name: name, binary_name: binary_name, val_type: val_type) =
@@ -267,7 +267,7 @@ defmodule PhoenixSpec.Controller do
           Plug.Conn.put_resp_header(acc, binary_name, encoded)
 
         :error when kind == :exact ->
-          raise "PhoenixSpec: required response header #{inspect(binary_name)} declared in " <>
+          raise "PhoenixSpectral: required response header #{inspect(binary_name)} declared in " <>
                   "typespec for #{action}/3 is missing from the response"
 
         :error ->

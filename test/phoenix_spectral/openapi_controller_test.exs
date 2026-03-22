@@ -1,17 +1,17 @@
-defmodule PhoenixSpec.OpenAPIControllerTest do
+defmodule PhoenixSpectral.OpenAPIControllerTest do
   use ExUnit.Case
 
   import Plug.Test
 
   defmodule TestOpenAPIController do
-    use PhoenixSpec.OpenAPIController,
+    use PhoenixSpectral.OpenAPIController,
       router: TestRouter,
       title: "Test API",
       version: "1.0.0"
   end
 
   defmodule TestOpenAPIControllerCustomUrl do
-    use PhoenixSpec.OpenAPIController,
+    use PhoenixSpectral.OpenAPIController,
       router: TestRouter,
       title: "Test API",
       version: "1.0.0",
@@ -19,7 +19,7 @@ defmodule PhoenixSpec.OpenAPIControllerTest do
   end
 
   defmodule TestOpenAPIControllerCached do
-    use PhoenixSpec.OpenAPIController,
+    use PhoenixSpectral.OpenAPIController,
       router: TestRouter,
       title: "Test API",
       version: "1.0.0",
@@ -27,7 +27,7 @@ defmodule PhoenixSpec.OpenAPIControllerTest do
   end
 
   defmodule TestOpenAPIControllerRichMetadata do
-    use PhoenixSpec.OpenAPIController,
+    use PhoenixSpectral.OpenAPIController,
       router: TestRouter,
       title: "Rich API",
       version: "2.0.0",
@@ -67,7 +67,7 @@ defmodule PhoenixSpec.OpenAPIControllerTest do
   end
 
   describe "show/2 with cache: true" do
-    @cache_key {PhoenixSpec.OpenAPIController, TestOpenAPIControllerCached}
+    @cache_key {PhoenixSpectral.OpenAPIController, TestOpenAPIControllerCached}
 
     setup do
       on_exit(fn -> :persistent_term.erase(@cache_key) end)
@@ -106,7 +106,7 @@ defmodule PhoenixSpec.OpenAPIControllerTest do
   end
 
   describe "show/2 with cache: false (default)" do
-    @no_cache_key {PhoenixSpec.OpenAPIController, TestOpenAPIController}
+    @no_cache_key {PhoenixSpectral.OpenAPIController, TestOpenAPIController}
 
     test "does not populate persistent_term" do
       conn(:get, "/openapi") |> TestOpenAPIController.show(%{})

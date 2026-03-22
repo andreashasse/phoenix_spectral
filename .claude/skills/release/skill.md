@@ -1,11 +1,11 @@
 ---
 name: release
-description: Prepare and publish a new release of PhoenixSpec. Updates CHANGELOG.md, mix.exs, and README.md with version information, analyzes git commits to determine semantic version, and guides through the release process.
+description: Prepare and publish a new release of PhoenixSpectral. Updates CHANGELOG.md, mix.exs, and README.md with version information, analyzes git commits to determine semantic version, and guides through the release process.
 ---
 
 # Release Skill
 
-You are helping to prepare a new release of the PhoenixSpec library.
+You are helping to prepare a new release of the PhoenixSpectral library.
 
 ## Step 1: Detect Current Version
 
@@ -57,7 +57,7 @@ After the user selects a version bump, update these files:
 - Update the `version:` field to the new version
 
 ### README.md
-- Find and update the installation example: `{:phoenix_spec, "~> X.Y.Z"}`
+- Find and update the installation example: `{:phoenix_spectral, "~> X.Y.Z"}`
 
 ### CHANGELOG.md
 - Add a new version section at the top (after `[Unreleased]`, before the previous version)

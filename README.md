@@ -1,15 +1,15 @@
-# PhoenixSpec
+# PhoenixSpectral
 
-PhoenixSpec integrates [Spectral](https://github.com/andreashasse/spectral) with Phoenix, making controller typespecs the single source of truth for OpenAPI 3.1 spec generation and request/response validation. Define your types once — PhoenixSpec derives the API docs and enforces them at runtime.
+PhoenixSpectral integrates [Spectral](https://github.com/andreashasse/spectral) with Phoenix, making controller typespecs the single source of truth for OpenAPI 3.1 spec generation and request/response validation. Define your types once — PhoenixSpectral derives the API docs and enforces them at runtime.
 
 ## Installation
 
-Add `phoenix_spec` to your dependencies in `mix.exs`:
+Add `phoenix_spectral` to your dependencies in `mix.exs`:
 
 ```elixir
 def deps do
   [
-    {:phoenix_spec, "~> 0.1.0"}
+    {:phoenix_spectral, "~> 0.1.0"}
   ]
 end
 ```
@@ -18,7 +18,7 @@ end
 
 ### Step 1: Define typed structs with Spectral
 
-[Spectral](https://github.com/andreashasse/spectral) is an Elixir library that validates, decodes, and encodes data according to your `@type` definitions. Add `use Spectral` to a module and your types become the schema — PhoenixSpec reads them to validate requests, decode inputs, encode responses, and generate the OpenAPI spec.
+[Spectral](https://github.com/andreashasse/spectral) is an Elixir library that validates, decodes, and encodes data according to your `@type` definitions. Add `use Spectral` to a module and your types become the schema — PhoenixSpectral reads them to validate requests, decode inputs, encode responses, and generate the OpenAPI spec.
 
 ```elixir
 defmodule MyApp.User do
@@ -46,7 +46,7 @@ end
 
 ### Step 2: Create a typed controller
 
-`use PhoenixSpec.Controller` replaces the standard Phoenix `action(conn, params)` convention with a 3-arity `action(path_args, headers, body)` convention:
+`use PhoenixSpectral.Controller` replaces the standard Phoenix `action(conn, params)` convention with a 3-arity `action(path_args, headers, body)` convention:
 
 - **`path_args`** — map of path parameters declared in the router (e.g. `%{id: 42}`), decoded from strings to the types declared in the spec
 - **`headers`** — map of request headers, decoded from binary strings to typed values; required keys use atom syntax (`key: type`), optional keys use arrow syntax (`optional(key) => type`)
@@ -58,7 +58,7 @@ Use the `spectral/1` macro to annotate actions with OpenAPI metadata such as `su
 
 ```elixir
 defmodule MyAppWeb.UserController do
-  use PhoenixSpec.Controller, formats: [:json]
+  use PhoenixSpectral.Controller, formats: [:json]
 
   spectral(summary: "Get user", description: "Returns a user by ID")
   @spec show(%{id: integer()}, %{}, nil) ::
@@ -109,7 +109,7 @@ end
 
 ```elixir
 defmodule MyAppWeb.OpenAPIController do
-  use PhoenixSpec.OpenAPIController,
+  use PhoenixSpectral.OpenAPIController,
     router: MyAppWeb.Router,
     title: "My API",
     version: "1.0.0"
@@ -150,7 +150,7 @@ end
 - **Invalid requests** (type mismatch, missing required fields) return `400 Bad Request` with a JSON error body listing the validation errors
 - **Response encoding failures** return `500 Internal Server Error` and log the error
 - **Malformed typespecs** raise at runtime — the fail-fast approach surfaces bugs during development rather than silently producing broken specs
-- Only routes whose controllers `use PhoenixSpec.Controller` appear in the generated OpenAPI spec; standard Phoenix controllers are ignored
+- Only routes whose controllers `use PhoenixSpectral.Controller` appear in the generated OpenAPI spec; standard Phoenix controllers are ignored
 
 ## Design
 

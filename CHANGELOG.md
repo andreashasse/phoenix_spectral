@@ -18,6 +18,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Typed request and response headers: declare and validate headers in action typespecs
 - Path parameter decoding from binary strings to typed values
 - Parameter descriptions via named type aliases annotated with `spectral`
-- `PhoenixSpec.OpenAPIController` for serving the OpenAPI JSON spec and a Swagger UI page
+- `PhoenixSpectral.OpenAPIController` for serving the OpenAPI JSON spec and a Swagger UI page
 - Optional caching of the generated spec via `:persistent_term`
 - Support for remote types in OpenAPI schema generation

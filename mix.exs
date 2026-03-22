@@ -1,9 +1,9 @@
-defmodule PhoenixSpec.MixProject do
+defmodule PhoenixSpectral.MixProject do
   use Mix.Project
 
   def project do
     [
-      app: :phoenix_spec,
+      app: :phoenix_spectral,
       version: "0.1.0",
       elixir: ">= 1.18.0",
       start_permanent: Mix.env() == :prod,
@@ -18,7 +18,7 @@ defmodule PhoenixSpec.MixProject do
   defp package do
     [
       licenses: ["Apache-2.0"],
-      links: %{"GitHub" => "https://github.com/andreashasse/phoenix_spec"}
+      links: %{"GitHub" => "https://github.com/andreashasse/phoenix_spectral"}
     ]
   end
 

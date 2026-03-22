@@ -20,7 +20,7 @@ defmodule Example.MixProject do
 
   defp deps do
     [
-      {:phoenix_spec, path: ".."},
+      {:phoenix_spectral, path: ".."},
       {:bandit, "~> 1.0"},
       {:jason, "~> 1.0"}
     ]
