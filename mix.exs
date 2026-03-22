@@ -11,7 +11,12 @@ defmodule PhoenixSpectral.MixProject do
       deps: deps(),
       description:
         "FastAPI for Elixir/Phoenix — controller typespecs as the single source of truth for OpenAPI 3.1 generation and request/response validation.",
-      package: package()
+      package: package(),
+      source_url: "https://github.com/andreashasse/phoenix_spectral",
+      docs: [
+        main: "readme",
+        extras: ["README.md", "CHANGELOG.md"]
+      ]
     ]
   end
 
