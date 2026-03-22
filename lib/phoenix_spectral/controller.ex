@@ -186,64 +186,51 @@ defmodule PhoenixSpectral.Controller do
           params
       end
 
-    case Enum.reduce_while(fields, %{}, fn field, acc ->
-           literal_map_field(
-             kind: kind,
-             name: name,
-             binary_name: binary_name,
-             val_type: val_type
-           ) = field
+    Enum.reduce_while(fields, {:ok, %{}}, fn field, {:ok, acc} ->
+      literal_map_field(kind: kind, name: name, binary_name: binary_name, val_type: val_type) =
+        field
 
-           case Map.fetch(raw_query_params, binary_name) do
-             {:ok, raw_value} ->
-               decode_value(raw_value, name, type_info, val_type, acc)
+      case Map.fetch(raw_query_params, binary_name) do
+        {:ok, raw_value} ->
+          decode_value(raw_value, name, type_info, val_type, acc)
 
-             :error when kind == :exact ->
-               {:halt, {:error, [%Spectral.Error{type: :missing_data, location: [name]}]}}
+        :error when kind == :exact ->
+          {:halt, {:error, [%Spectral.Error{type: :missing_data, location: [name]}]}}
 
-             :error ->
-               {:cont, acc}
-           end
-         end) do
-      {:error, _} = error -> error
-      result -> {:ok, result}
-    end
+        :error ->
+          {:cont, {:ok, acc}}
+      end
+    end)
   end
 
   defp decode_request_headers(conn, controller, action) do
     {_path_args_type, _query_params_type, headers_type, _body_type} =
       lookup_action_types(controller, action)
+
     type_info = controller.__spectra_type_info__()
     fields = PhoenixSpectral.map_fields(headers_type, type_info)
     raw_headers = conn.req_headers
 
-    case Enum.reduce_while(fields, %{}, fn field, acc ->
-           literal_map_field(
-             kind: kind,
-             name: name,
-             binary_name: binary_name,
-             val_type: val_type
-           ) = field
+    Enum.reduce_while(fields, {:ok, %{}}, fn field, {:ok, acc} ->
+      literal_map_field(kind: kind, name: name, binary_name: binary_name, val_type: val_type) =
+        field
 
-           case List.keyfind(raw_headers, binary_name, 0) do
-             {_key, raw_value} ->
-               decode_value(raw_value, name, type_info, val_type, acc)
+      case List.keyfind(raw_headers, binary_name, 0) do
+        {_key, raw_value} ->
+          decode_value(raw_value, name, type_info, val_type, acc)
 
-             nil when kind == :exact ->
-               {:halt, {:error, [%Spectral.Error{type: :missing_data, location: [name]}]}}
+        nil when kind == :exact ->
+          {:halt, {:error, [%Spectral.Error{type: :missing_data, location: [name]}]}}
 
-             nil ->
-               {:cont, acc}
-           end
-         end) do
-      {:error, _} = error -> error
-      result -> {:ok, result}
-    end
+        nil ->
+          {:cont, {:ok, acc}}
+      end
+    end)
   end
 
   defp decode_value(raw_value, name, type_info, val_type, acc) do
     case Spectral.decode(raw_value, type_info, val_type, :binary_string) do
-      {:ok, decoded} -> {:cont, Map.put(acc, name, decoded)}
+      {:ok, decoded} -> {:cont, {:ok, Map.put(acc, name, decoded)}}
       {:error, errors} -> {:halt, {:error, errors}}
     end
   end

@@ -13,7 +13,14 @@ defmodule PhoenixSpectral.ControllerTest do
     |> controller.action([])
   end
 
-  defp dispatch(method, path, body_params, path_params \\ %{}, query_params \\ %{}, req_headers \\ []) do
+  defp dispatch(
+         method,
+         path,
+         body_params,
+         path_params \\ %{},
+         query_params \\ %{},
+         req_headers \\ []
+       ) do
     call(
       TestUserController,
       action_from_path(method, path),
