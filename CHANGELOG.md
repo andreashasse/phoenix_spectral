@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-03-22
+
+### Added
+
+- Query parameters are now passed as the second argument to controller actions. Declare them in the typespec as a map and they are extracted from `conn.query_params`, validated against the typespec, and decoded accordingly.
+- OpenAPI spec generation emits query parameter fields as `in: query` parameters with correct required/optional annotations.
+
+### Changed
+
+- **Breaking:** Controller action arity changed from 3-arity `(path_args, headers, body)` to 4-arity `(path_args, query_params, headers, body)`. Existing actions must add a `query_params` argument and update their typespecs accordingly.
+
 ## [0.1.1] - 2026-03-22
 
 ### Changed
