@@ -6,7 +6,13 @@ defmodule TestConnController do
           {200, %{}, TestUser.t()}
   def show_with_assigns(conn, %{id: id}, _query, _headers, _body) do
     current_user = conn.assigns[:current_user] || "unknown"
-    {200, %{}, %TestUser{id: String.to_integer(id), name: current_user, email: "#{current_user}@example.com"}}
+
+    {200, %{},
+     %TestUser{
+       id: String.to_integer(id),
+       name: current_user,
+       email: "#{current_user}@example.com"
+     }}
   end
 
   # The typespec declares the API contract for OpenAPI generation.

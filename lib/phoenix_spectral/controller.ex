@@ -131,7 +131,15 @@ defmodule PhoenixSpectral.Controller do
           returned_conn
 
         {status, response_headers, response_body} when is_integer(status) ->
-          send_typed_response(conn, controller, action, arity, status, response_headers, response_body)
+          send_typed_response(
+            conn,
+            controller,
+            action,
+            arity,
+            status,
+            response_headers,
+            response_body
+          )
 
         other ->
           raise "PhoenixSpectral action #{inspect(controller)}.#{action} must return " <>
@@ -276,7 +284,15 @@ defmodule PhoenixSpectral.Controller do
     end
   end
 
-  defp send_typed_response(conn, controller, action, arity, status, response_headers, response_body) do
+  defp send_typed_response(
+         conn,
+         controller,
+         action,
+         arity,
+         status,
+         response_headers,
+         response_body
+       ) do
     type_info = controller.__spectra_type_info__()
     conn = encode_response_headers(conn, type_info, action, arity, status, response_headers)
     body_type = lookup_response_body_type(type_info, action, arity, status)
