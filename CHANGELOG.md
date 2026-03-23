@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-03-23
+
+### Added
+
+- `conn` is now passed as the first argument to every controller action, giving direct access to `conn.assigns` (auth context from upstream plugs), `conn.remote_ip`, `conn.host`, `conn.method`, and other connection data.
+- Actions may return a `Plug.Conn` directly instead of `{status, headers, body}`, enabling `send_file/3`, `send_chunked/2`, and other raw response mechanisms. Schema validation is intentionally bypassed in that case.
+
+### Fixed
+
+- Requests without a body (e.g. GET) no longer return 400 when the endpoint is configured with `Plug.Parsers` `pass: ["*/*"]`, which sets `body_params` to `%{}` rather than leaving it unfetched.
+
+### Changed
+
+- **Breaking:** Controller action signature changed from `(path_args, query_params, headers, body)` to `(conn, path_args, query_params, headers, body)`. All existing actions must add `conn` (or `_conn`) as the first argument and include `Plug.Conn.t()` in their `@spec`.
+
 ## [0.2.0] - 2026-03-22
 
 ### Added
