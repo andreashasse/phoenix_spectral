@@ -2,9 +2,9 @@ defmodule PhoenixSpectral.Controller do
   @moduledoc """
   A Phoenix controller module that validates requests and responses using typespecs.
 
-  When you `use PhoenixSpectral.Controller`, your controller actions use a 4-arity
-  convention `(path_args, query_params, headers, body)` instead of the standard Phoenix
-  `(conn, params)`. Request data is decoded and validated against your typespecs,
+  When you `use PhoenixSpectral.Controller`, your controller actions use a 5-arity
+  convention `(conn, path_args, query_params, headers, body)` instead of the standard
+  Phoenix `(conn, params)`. Request data is decoded and validated against your typespecs,
   and responses are encoded automatically.
 
   ## Usage
@@ -12,14 +12,14 @@ defmodule PhoenixSpectral.Controller do
       defmodule MyAppWeb.UserController do
         use PhoenixSpectral.Controller
 
-        @spec show(%{id: String.t()}, %{}, %{}, nil) :: {200, %{}, User.t()}
-        def show(path_args, _query_params, _headers, _body) do
+        @spec show(Plug.Conn.t(), %{id: String.t()}, %{}, %{}, nil) :: {200, %{}, User.t()}
+        def show(_conn, path_args, _query_params, _headers, _body) do
           user = Repo.get!(User, path_args.id)
           {200, %{}, user}
         end
 
-        @spec create(%{}, %{}, %{}, UserInput.t()) :: {201, %{}, User.t()} | {422, %{}, Error.t()}
-        def create(_path_args, _query_params, _headers, body) do
+        @spec create(Plug.Conn.t(), %{}, %{}, %{}, UserInput.t()) :: {201, %{}, User.t()} | {422, %{}, Error.t()}
+        def create(_conn, _path_args, _query_params, _headers, body) do
           case Repo.insert(body) do
             {:ok, user} -> {201, %{}, user}
             {:error, changeset} -> {422, %{}, format_errors(changeset)}
@@ -27,19 +27,18 @@ defmodule PhoenixSpectral.Controller do
         end
       end
 
-  ## Accessing conn (5-arity)
+  ## Using conn
 
-  When you need `conn` — for `conn.assigns`, `conn.remote_ip`, `conn.method`, etc. — add
-  it as the first argument to make the action 5-arity. PhoenixSpectral detects this
-  automatically and passes the conn through:
+  `conn` is always passed as the first argument. Use it for out-of-band context —
+  `conn.assigns` (auth from upstream plugs), `conn.remote_ip`, `conn.host`,
+  `conn.method`, `conn.private`, etc.
 
-      @spec show(Plug.Conn.t(), %{id: String.t()}, %{}, %{}, nil) :: {200, %{}, User.t()}
-      def show(conn, %{id: id}, _query, _headers, _body) do
-        current_user = conn.assigns.current_user
-        {200, %{}, Repo.get_for!(User, id, current_user)}
-      end
+  Do not use `conn` to access data that is already decoded and validated by the
+  framework: use `path_args`, `query_params`, `headers`, and `body` instead.
+  Reading from `conn.path_params`, `conn.query_params`, `conn.req_headers`, or
+  `conn.body_params` directly bypasses type validation.
 
-  A 5-arity action may also return `conn` directly for streaming, file sends, or any
+  An action may also return `conn` directly for streaming, file sends, or any
   other response that cannot be expressed as `{status, headers, body}`. In that case,
   PhoenixSpectral passes the conn through without schema validation — the typespec still
   documents the endpoint, but the response is the caller's responsibility.
@@ -48,8 +47,7 @@ defmodule PhoenixSpectral.Controller do
 
   1. Extracts path params, query params, headers, and body from `conn`
   2. Decodes and validates them against the action's typespec via `Spectral.decode`
-  3. Calls your handler as `action(path_args, query_params, headers, decoded_body)`
-     (or `action(conn, path_args, query_params, headers, decoded_body)` if 5-arity)
+  3. Calls your handler as `action(conn, path_args, query_params, headers, decoded_body)`
   4. Encodes the `{status, headers, body}` response via `Spectral.encode`
   5. Sends the response on `conn`
   6. On validation failure, returns a 400 response
@@ -119,15 +117,8 @@ defmodule PhoenixSpectral.Controller do
          {:ok, query_params} <- decode_query_params(conn, controller, action),
          {:ok, headers} <- decode_request_headers(conn, controller, action),
          {:ok, body} <- decode_request_body(conn, controller, action) do
-      arity = if function_exported?(controller, action, 5), do: 5, else: 4
-
-      args =
-        if arity == 5,
-          do: [conn, path_args, query_params, headers, body],
-          else: [path_args, query_params, headers, body]
-
-      case apply(controller, action, args) do
-        %Plug.Conn{} = returned_conn when arity == 5 ->
+      case apply(controller, action, [conn, path_args, query_params, headers, body]) do
+        %Plug.Conn{} = returned_conn ->
           returned_conn
 
         {status, response_headers, response_body} when is_integer(status) ->
@@ -135,7 +126,6 @@ defmodule PhoenixSpectral.Controller do
             conn,
             controller,
             action,
-            arity,
             status,
             response_headers,
             response_body
@@ -174,25 +164,15 @@ defmodule PhoenixSpectral.Controller do
   defp lookup_action_types(controller, action) do
     type_info = controller.__spectra_type_info__()
 
-    case Spectral.TypeInfo.find_function(type_info, action, 5) do
-      {:ok,
-       [
-         sp_function_spec(
-           args: [_conn_type, path_args_type, query_params_type, headers_type, body_type]
-         )
-         | _
-       ]} ->
-        {path_args_type, query_params_type, headers_type, body_type}
+    {:ok,
+     [
+       sp_function_spec(
+         args: [_conn_type, path_args_type, query_params_type, headers_type, body_type]
+       )
+       | _
+     ]} = Spectral.TypeInfo.find_function(type_info, action, 5)
 
-      _ ->
-        {:ok,
-         [
-           sp_function_spec(args: [path_args_type, query_params_type, headers_type, body_type])
-           | _
-         ]} = Spectral.TypeInfo.find_function(type_info, action, 4)
-
-        {path_args_type, query_params_type, headers_type, body_type}
-    end
+    {path_args_type, query_params_type, headers_type, body_type}
   end
 
   defp decode_path_args(conn, controller, action) do
@@ -288,14 +268,13 @@ defmodule PhoenixSpectral.Controller do
          conn,
          controller,
          action,
-         arity,
          status,
          response_headers,
          response_body
        ) do
     type_info = controller.__spectra_type_info__()
-    conn = encode_response_headers(conn, type_info, action, arity, status, response_headers)
-    body_type = lookup_response_body_type(type_info, action, arity, status)
+    conn = encode_response_headers(conn, type_info, action, status, response_headers)
+    body_type = lookup_response_body_type(type_info, action, status)
 
     case encode_response_body(type_info, body_type, response_body) do
       {:ok, encoded} ->
@@ -317,9 +296,9 @@ defmodule PhoenixSpectral.Controller do
     end
   end
 
-  defp find_return_tuple(type_info, action, arity, status) do
+  defp find_return_tuple(type_info, action, status) do
     {:ok, [sp_function_spec(return: return_type) | _]} =
-      Spectral.TypeInfo.find_function(type_info, action, arity)
+      Spectral.TypeInfo.find_function(type_info, action, 5)
 
     tuples =
       case return_type do
@@ -330,16 +309,16 @@ defmodule PhoenixSpectral.Controller do
     Enum.find(tuples, fn sp_tuple(fields: [sp_literal(value: s), _, _]) -> s == status end)
   end
 
-  defp lookup_response_body_type(type_info, action, arity, status) do
+  defp lookup_response_body_type(type_info, action, status) do
     sp_tuple(fields: [_status_type, _headers_type, body_type]) =
-      find_return_tuple(type_info, action, arity, status)
+      find_return_tuple(type_info, action, status)
 
     body_type
   end
 
-  defp lookup_response_headers_type(type_info, action, arity, status) do
+  defp lookup_response_headers_type(type_info, action, status) do
     sp_tuple(fields: [_status_type, headers_type, _body_type]) =
-      find_return_tuple(type_info, action, arity, status)
+      find_return_tuple(type_info, action, status)
 
     headers_type
   end
@@ -353,8 +332,8 @@ defmodule PhoenixSpectral.Controller do
     end
   end
 
-  defp encode_response_headers(conn, type_info, action, arity, status, response_headers) do
-    headers_type = lookup_response_headers_type(type_info, action, arity, status)
+  defp encode_response_headers(conn, type_info, action, status, response_headers) do
+    headers_type = lookup_response_headers_type(type_info, action, status)
     fields = PhoenixSpectral.map_fields(headers_type, type_info)
 
     Enum.reduce(fields, conn, fn field, acc ->
