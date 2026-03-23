@@ -46,7 +46,7 @@ end
 
 ### Step 2: Create a typed controller
 
-`use PhoenixSpectral.Controller` replaces the standard Phoenix `action(conn, params)` convention with a 5-arity `action(conn, path_args, query_params, headers, body)` convention:
+`use PhoenixSpectral.Controller` replaces the standard Phoenix `action(conn, params)` convention with `action(conn, path_args, query_params, headers, body)`:
 
 - **`conn`** — the Plug connection, for out-of-band context (`conn.assigns`, `conn.remote_ip`, etc.)
 - **`path_args`** — map of path parameters declared in the router (e.g. `%{id: 42}`), decoded from strings to the types declared in the spec
@@ -175,7 +175,7 @@ end
 ## Design
 
 - **Typespecs are the single source of truth** — no separate schema definitions; `@spec` drives both docs and validation
-- **5-arity action convention** — `(conn, path_args, query_params, headers, body)` → `{status, headers, body}`; union return types produce multiple OpenAPI response entries
+- **Action convention** — `(conn, path_args, query_params, headers, body)` → `{status, headers, body}`; union return types produce multiple OpenAPI response entries
 - **Crash on bad code, error on bad user input** — malformed typespecs raise; invalid requests return 400, encoding failures return 500
 - **Automatic encoding/decoding** — Spectral handles struct serialization
 - **Optional caching** — via `persistent_term` for production performance

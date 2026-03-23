@@ -249,7 +249,7 @@ defmodule PhoenixSpectralTest do
     end
   end
 
-  describe "generate_openapi/2 with 5-arity (conn) actions" do
+  describe "generate_openapi/2 with conn actions" do
     defp generate_conn_spec do
       {:ok, json} =
         PhoenixSpectral.generate_openapi(TestConnRouter, %{title: "Test API", version: "1.0.0"})
@@ -257,7 +257,7 @@ defmodule PhoenixSpectralTest do
       Jason.decode!(json)
     end
 
-    test "generates paths for 5-arity actions" do
+    test "generates paths for conn actions" do
       spec = generate_conn_spec()
       assert Map.has_key?(spec["paths"], "/users/{id}")
       assert Map.has_key?(spec["paths"], "/download")

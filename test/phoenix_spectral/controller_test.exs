@@ -217,7 +217,7 @@ defmodule PhoenixSpectral.ControllerTest do
     end
   end
 
-  describe "PhoenixSpectral.Controller with conn as first argument (5-arity)" do
+  describe "PhoenixSpectral.Controller with conn access" do
     defp dispatch_conn(action, path_params, assigns \\ %{}) do
       conn(:get, "/", nil)
       |> Map.put(:path_params, path_params)

@@ -2,8 +2,8 @@ defmodule PhoenixSpectral.Controller do
   @moduledoc """
   A Phoenix controller module that validates requests and responses using typespecs.
 
-  When you `use PhoenixSpectral.Controller`, your controller actions use a 5-arity
-  convention `(conn, path_args, query_params, headers, body)` instead of the standard
+  When you `use PhoenixSpectral.Controller`, your controller actions use the convention
+  `(conn, path_args, query_params, headers, body)` instead of the standard
   Phoenix `(conn, params)`. Request data is decoded and validated against your typespecs,
   and responses are encoded automatically.
 
