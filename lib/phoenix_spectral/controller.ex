@@ -193,7 +193,7 @@ defmodule PhoenixSpectral.Controller do
 
         :error ->
           raise "PhoenixSpectral: path param #{inspect(binary_name)} declared in typespec for " <>
-                  "#{inspect(controller)}.#{action}/4 is not present in conn.path_params. " <>
+                  "#{inspect(controller)}.#{action}/5 is not present in conn.path_params. " <>
                   "Does the router path match the typespec?"
       end
     end)
@@ -285,7 +285,7 @@ defmodule PhoenixSpectral.Controller do
 
       {:error, errors} ->
         Logger.error(
-          "PhoenixSpectral: response encoding failed for #{inspect(controller)}.#{action}/4: #{inspect(errors)}"
+          "PhoenixSpectral: response encoding failed for #{inspect(controller)}.#{action}/5: #{inspect(errors)}"
         )
 
         conn
@@ -348,7 +348,7 @@ defmodule PhoenixSpectral.Controller do
 
         :error when kind == :exact ->
           raise "PhoenixSpectral: required response header #{inspect(binary_name)} declared in " <>
-                  "typespec for #{action}/4 is missing from the response"
+                  "typespec for #{action}/5 is missing from the response"
 
         :error ->
           acc
