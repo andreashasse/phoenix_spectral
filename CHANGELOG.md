@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.1] - 2026-03-25
+
+### Changed
+
+- Upgraded `spectral` dependency to `~> 0.9.0` (and `spectra` transitively). No API changes required in PhoenixSpectral itself.
+- Example app `UserId` codec updated to the 6-argument `Spectral.Codec` callbacks introduced in spectral 0.9.0 (`_sp_type` inserted before `params` in `encode/6`, `decode/6`, and `schema/5`).
+
+### Fixed
+
+- Corrected stale `/4` arity references in controller error messages to `/5` (the correct arity since the `conn` argument was added in 0.3.0).
+
 ## [0.3.0] - 2026-03-23
 
 ### Added
