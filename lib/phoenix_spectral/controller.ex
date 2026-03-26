@@ -27,6 +27,29 @@ defmodule PhoenixSpectral.Controller do
         end
       end
 
+  ## Options
+
+  Options are forwarded to `use Phoenix.Controller` (e.g. `formats: [:json]`).
+
+  ## Required vs optional query params and headers
+
+  - `%{required(:key) => type}` — missing key returns `400 Bad Request`
+  - `%{optional(:key) => type}` — missing key is omitted from the decoded map
+
+  Path parameters are always required.
+
+  ## OpenAPI annotations with spectral/1
+
+  `use PhoenixSpectral.Controller` implies `use Spectral`. Use `spectral/1` before
+  `@spec` to annotate the endpoint with `summary:` and `description:`. On type
+  aliases, `spectral description: "..."` adds a description to the parameter in
+  the OpenAPI output.
+
+  ## Actions without @spec
+
+  Actions without a `@spec` crash on dispatch and during OpenAPI generation — use
+  a plain `use Phoenix.Controller` module to bypass PhoenixSpectral entirely.
+
   ## Using conn
 
   `conn` is always passed as the first argument. Use it for out-of-band context —

@@ -62,7 +62,7 @@ Use the `spectral/1` macro to annotate actions with OpenAPI metadata such as `su
 
 ```elixir
 defmodule MyAppWeb.UserController do
-  use PhoenixSpectral.Controller, formats: [:json]
+  use PhoenixSpectral.Controller, formats: [:json]  # opts forwarded to use Phoenix.Controller
 
   spectral(summary: "Get user", description: "Returns a user by ID")
   @spec show(Plug.Conn.t(), %{id: integer()}, %{}, %{}, nil) ::
@@ -146,7 +146,7 @@ end
 | `:contact` | no | Map with `:name`, `:url`, `:email` |
 | `:license` | no | Map with `:name` and optional `:url`, `:identifier` |
 | `:servers` | no | List of maps with `:url` and optional `:description` |
-| `:openapi_url` | no | URL path for the JSON spec, used by Swagger UI (default: `"/openapi"`) |
+| `:openapi_url` | no | URL path for the JSON spec, used by Swagger UI. Defaults to the path of this controller's `:show` route as declared in the router (scope prefixes included). Set explicitly to use a different path. |
 | `:cache` | no | Cache the generated JSON in `:persistent_term` (default: `false`) |
 
 ## Streaming and raw responses
@@ -169,7 +169,7 @@ end
 
 - **Invalid requests** (type mismatch, missing required fields) return `400 Bad Request` with a JSON error body listing the validation errors
 - **Response encoding failures** return `500 Internal Server Error` and log the error
-- **Malformed typespecs** raise at runtime — the fail-fast approach surfaces bugs during development rather than silently producing broken specs
+- **Missing or malformed typespecs** raise at runtime — actions without `@spec` crash on dispatch; malformed specs crash on spec generation
 - Only routes whose controllers `use PhoenixSpectral.Controller` appear in the generated OpenAPI spec; standard Phoenix controllers are ignored
 
 ## Example

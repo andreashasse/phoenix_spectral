@@ -27,7 +27,9 @@ defmodule PhoenixSpectral.OpenAPIController do
   - `:contact` — (optional) contact map with `:name`, `:url`, `:email`
   - `:license` — (optional) license map with `:name` and optional `:url`, `:identifier`
   - `:servers` — (optional) list of server objects, each with `:url` and optional `:description`
-  - `:openapi_url` — URL path where the JSON spec is served, used by Swagger UI (default: `"/openapi"`)
+  - `:openapi_url` — URL path where the JSON spec is served, used by Swagger UI. Defaults to
+    the path of this controller's `:show` route as declared in the router (scope prefixes
+    included). Set explicitly to use a different path.
   - `:cache` — when `true`, the generated JSON is stored in `:persistent_term` after the first
     request and served from there on subsequent requests (default: `false`)
   """
@@ -45,7 +47,7 @@ defmodule PhoenixSpectral.OpenAPIController do
 
   defmacro __using__(opts) do
     router = Keyword.fetch!(opts, :router)
-    openapi_url = Keyword.get(opts, :openapi_url, "/openapi")
+    openapi_url = Keyword.get(opts, :openapi_url)
     cache = Keyword.get(opts, :cache, false)
     metadata_kv = Keyword.take(opts, @metadata_keys)
 
@@ -73,7 +75,17 @@ defmodule PhoenixSpectral.OpenAPIController do
       end
 
       def swagger(conn, _params) do
-        html = PhoenixSpectral.OpenAPIController.swagger_html(unquote(openapi_url))
+        openapi_url =
+          unquote(openapi_url) ||
+            case Enum.find(
+                   Phoenix.Router.routes(unquote(router)),
+                   &(&1.plug == __MODULE__ && &1.plug_opts == :show)
+                 ) do
+              %{path: path} -> path
+              nil -> "/openapi"
+            end
+
+        html = PhoenixSpectral.OpenAPIController.swagger_html(openapi_url)
 
         conn
         |> put_resp_content_type("text/html")

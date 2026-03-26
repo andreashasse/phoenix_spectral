@@ -178,13 +178,25 @@ defmodule PhoenixSpectral.OpenAPIControllerTest do
       assert {"content-type", "text/html; charset=utf-8"} in conn.resp_headers
     end
 
-    test "embeds the default openapi_url in the Swagger UI script" do
+    test "falls back to /openapi when the controller has no :show route in the router" do
       conn = conn(:get, "/swagger") |> TestOpenAPIController.swagger(%{})
 
       assert conn.resp_body =~ ~s(url: "/openapi")
     end
 
-    test "embeds a custom openapi_url when configured" do
+    test "auto-detects the openapi_url from the router's :show route" do
+      conn = conn(:get, "/swagger") |> TestOpenAPIRouterController.swagger(%{})
+
+      assert conn.resp_body =~ ~s(url: "/openapi")
+    end
+
+    test "auto-detected url includes scope prefix" do
+      conn = conn(:get, "/swagger") |> TestScopedOpenAPIRouterController.swagger(%{})
+
+      assert conn.resp_body =~ ~s(url: "/api/openapi")
+    end
+
+    test "explicit openapi_url overrides auto-detection" do
       conn = conn(:get, "/swagger") |> TestOpenAPIControllerCustomUrl.swagger(%{})
 
       assert conn.resp_body =~ ~s(url: "/api/openapi")
