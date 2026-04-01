@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.2] - 2026-04-01
+
+### Added
+
+- `OpenAPIController` now auto-detects the OpenAPI spec URL from the router, so `:openapi_url` no longer needs to be set explicitly in the common case. Set it explicitly only when serving the spec at a non-standard path.
+
+### Changed
+
+- Type info and action types are now resolved once per request dispatch instead of once per decode step, reducing redundant BEAM metadata lookups.
+
+### Fixed
+
+- Format check in CI pinned to Elixir 1.19 to avoid spurious failures from formatter behaviour differences between 1.18 and 1.19.
+
 ## [0.3.1] - 2026-03-25
 
 ### Changed
