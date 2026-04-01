@@ -69,6 +69,7 @@ jobs:
         run: mix dialyzer
 
       - name: Check formatting
+        if: matrix.elixir == '1.19'
         run: mix format --check-formatted
 
       - name: Integration test (example app)
