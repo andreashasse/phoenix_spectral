@@ -194,7 +194,8 @@ Spectral ships codecs for `DateTime`, `Date`, and `MapSet` that are not active b
 # config/config.exs
 config :spectra, :codecs, %{
   {DateTime, {:type, :t, 0}} => Spectral.Codec.DateTime,
-  {Date,     {:type, :t, 0}} => Spectral.Codec.Date
+  {Date,     {:type, :t, 0}} => Spectral.Codec.Date,
+  {MapSet,   {:type, :t, 1}} => Spectral.Codec.MapSet
 }
 ```
 
