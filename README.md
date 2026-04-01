@@ -182,6 +182,44 @@ mix deps.get
 make integration-test   # starts server, runs curl checks, stops server
 ```
 
+## Configuration
+
+PhoenixSpectral delegates encoding, decoding, and schema generation to [Spectral](https://github.com/andreashasse/spectral) / [spectra](https://github.com/andreashasse/spectra). Configure them directly in `config/config.exs` (or `config/runtime.exs`).
+
+### Custom codecs
+
+Spectral ships codecs for `DateTime`, `Date`, and `MapSet` that are not active by default. Register them — and any application-level custom codecs — under the `:spectra` application:
+
+```elixir
+# config/config.exs
+config :spectra, :codecs, %{
+  {DateTime, {:type, :t, 0}} => Spectral.Codec.DateTime,
+  {Date,     {:type, :t, 0}} => Spectral.Codec.Date,
+  {MapSet,   {:type, :t, 1}} => Spectral.Codec.MapSet
+}
+```
+
+The key is `{ModuleOwningType, {:type, type_name, arity}}`. See the [Spectral codec guide](https://github.com/andreashasse/spectral) for writing your own codecs with `use Spectral.Codec`.
+
+### Production: enable the module types cache
+
+By default, spectra extracts type info from BEAM metadata on every decode/encode call. In production, enable persistent-term caching to avoid that overhead:
+
+```elixir
+# config/prod.exs
+config :spectra, :use_module_types_cache, true
+```
+
+This stores `__spectra_type_info__/0` results in `:persistent_term` after the first call. Safe whenever modules are not hot-reloaded (i.e., in Mix releases). Clear manually with `spectra_module_types:clear(Module)` if needed.
+
+### Unicode validation
+
+spectra skips Unicode validation of list-based strings by default. Enable it when strict validation matters:
+
+```elixir
+config :spectra, :check_unicode, true
+```
+
 ## Design
 
 - **Typespecs are the single source of truth** — no separate schema definitions; `@spec` drives both docs and validation

@@ -15,7 +15,10 @@ mix test test/phoenix_spectral_test.exs           # Run specific test file
 mix test test/phoenix_spectral_test.exs:92        # Run specific test by line
 mix format            # Format code
 mix format --check-formatted  # Check formatting
+make ci               # Full CI: compile, test, credo, dialyzer, format check
 ```
+
+Run `make ci` before every commit and when done with a task.
 
 ## Architecture
 

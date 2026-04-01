@@ -136,10 +136,15 @@ defmodule PhoenixSpectral.Controller do
   end
 
   def dispatch(conn, controller, action) do
-    with {:ok, path_args} <- decode_path_args(conn, controller, action),
-         {:ok, query_params} <- decode_query_params(conn, controller, action),
-         {:ok, headers} <- decode_request_headers(conn, controller, action),
-         {:ok, body} <- decode_request_body(conn, controller, action) do
+    type_info = controller.__spectra_type_info__()
+
+    {path_args_type, query_params_type, headers_type, body_type} =
+      lookup_action_types(type_info, action)
+
+    with {:ok, path_args} <- decode_path_args(conn, type_info, path_args_type, controller, action),
+         {:ok, query_params} <- decode_query_params(conn, type_info, query_params_type),
+         {:ok, headers} <- decode_request_headers(conn, type_info, headers_type),
+         {:ok, body} <- decode_request_body(conn, type_info, body_type) do
       case apply(controller, action, [conn, path_args, query_params, headers, body]) do
         %Plug.Conn{} = returned_conn ->
           returned_conn
@@ -147,6 +152,7 @@ defmodule PhoenixSpectral.Controller do
         {status, response_headers, response_body} when is_integer(status) ->
           send_typed_response(
             conn,
+            type_info,
             controller,
             action,
             status,
@@ -169,12 +175,7 @@ defmodule PhoenixSpectral.Controller do
     end
   end
 
-  defp decode_request_body(conn, controller, action) do
-    {_path_args_type, _query_params_type, _headers_type, body_type} =
-      lookup_action_types(controller, action)
-
-    type_info = controller.__spectra_type_info__()
-
+  defp decode_request_body(conn, type_info, body_type) do
     raw_body =
       case conn.body_params do
         %Plug.Conn.Unfetched{} -> nil
@@ -185,9 +186,7 @@ defmodule PhoenixSpectral.Controller do
     Spectral.decode(raw_body, type_info, body_type, :json, [:pre_decoded])
   end
 
-  defp lookup_action_types(controller, action) do
-    type_info = controller.__spectra_type_info__()
-
+  defp lookup_action_types(type_info, action) do
     {:ok,
      [
        sp_function_spec(
@@ -199,11 +198,7 @@ defmodule PhoenixSpectral.Controller do
     {path_args_type, query_params_type, headers_type, body_type}
   end
 
-  defp decode_path_args(conn, controller, action) do
-    {path_args_type, _query_params_type, _headers_type, _body_type} =
-      lookup_action_types(controller, action)
-
-    type_info = controller.__spectra_type_info__()
+  defp decode_path_args(conn, type_info, path_args_type, controller, action) do
     fields = PhoenixSpectral.map_fields(path_args_type, type_info)
     raw_path_params = conn.path_params
 
@@ -222,11 +217,7 @@ defmodule PhoenixSpectral.Controller do
     end)
   end
 
-  defp decode_query_params(conn, controller, action) do
-    {_path_args_type, query_params_type, _headers_type, _body_type} =
-      lookup_action_types(controller, action)
-
-    type_info = controller.__spectra_type_info__()
+  defp decode_query_params(conn, type_info, query_params_type) do
     fields = PhoenixSpectral.map_fields(query_params_type, type_info)
 
     raw_query_params =
@@ -256,11 +247,7 @@ defmodule PhoenixSpectral.Controller do
     end)
   end
 
-  defp decode_request_headers(conn, controller, action) do
-    {_path_args_type, _query_params_type, headers_type, _body_type} =
-      lookup_action_types(controller, action)
-
-    type_info = controller.__spectra_type_info__()
+  defp decode_request_headers(conn, type_info, headers_type) do
     fields = PhoenixSpectral.map_fields(headers_type, type_info)
     raw_headers = conn.req_headers
 
@@ -290,13 +277,13 @@ defmodule PhoenixSpectral.Controller do
 
   defp send_typed_response(
          conn,
+         type_info,
          controller,
          action,
          status,
          response_headers,
          response_body
        ) do
-    type_info = controller.__spectra_type_info__()
     conn = encode_response_headers(conn, type_info, action, status, response_headers)
     body_type = lookup_response_body_type(type_info, action, status)
 
