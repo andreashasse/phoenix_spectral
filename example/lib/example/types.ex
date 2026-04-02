@@ -30,7 +30,8 @@ defmodule Example.Types do
     def encode(_format, _module, _type_ref, _data, _sp_type, _params), do: :continue
 
     @impl Spectral.Codec
-    def decode(_format, UserId, {:type, :t, 0}, encoded, _sp_type, prefix) when is_binary(encoded) do
+    def decode(_format, UserId, {:type, :t, 0}, encoded, _sp_type, prefix)
+        when is_binary(encoded) do
       prefix_len = byte_size(prefix)
 
       case encoded do

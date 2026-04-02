@@ -9,7 +9,7 @@ Add `phoenix_spectral` to your dependencies in `mix.exs`:
 ```elixir
 def deps do
   [
-    {:phoenix_spectral, "~> 0.3.2"}
+    {:phoenix_spectral, "~> 0.3.3"}
   ]
 end
 ```
@@ -49,10 +49,10 @@ end
 `use PhoenixSpectral.Controller` replaces the standard Phoenix `action(conn, params)` convention with five typed arguments. The four request inputs are kept separate rather than merged into one `params` map: the body can be a typed struct, which cannot be merged into a flat map alongside path args and query params without losing its type, and the OpenAPI generator needs to know where each field comes from — path, query, header, or body — to produce a correct spec.
 
 ```elixir
-@spec update(Plug.Conn.t(), %{id: integer()}, %{}, %{}, MyApp.UserInput.t()) ::
+@spec update(Plug.Conn.t(), %{id: integer()}, %{}, %{}, MyApp.User.t()) ::
         {200, %{}, MyApp.User.t()}
         | {404, %{}, MyApp.Error.t()}
-def update(_conn, %{id: id}, _query_params, _headers, user_input), do: ...
+def update(_conn, %{id: id}, _query_params, _headers, body), do: ...
 ```
 
 - **`conn`** (`Plug.Conn.t()`) — the Plug connection, for out-of-band context (`conn.assigns`, `conn.remote_ip`, etc.)

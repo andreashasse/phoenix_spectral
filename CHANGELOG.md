@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.3] - 2026-04-02
+
+### Changed
+
+- Bumped `spectral` requirement to `~> 0.9.2`, picking up spectra 0.9.3 which fixes codec `type_parameters` handling for string types.
+
+### Fixed
+
+- README `update` action example corrected to use the right argument names.
+
 ## [0.3.2] - 2026-04-01
 
 ### Added
