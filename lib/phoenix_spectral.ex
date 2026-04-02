@@ -24,18 +24,8 @@ defmodule PhoenixSpectral do
   )
 
   Record.defrecordp(
-    :sp_map,
-    Record.extract(:sp_map, from_lib: "spectra/include/spectra_internal.hrl")
-  )
-
-  Record.defrecordp(
     :sp_tuple,
     Record.extract(:sp_tuple, from_lib: "spectra/include/spectra_internal.hrl")
-  )
-
-  Record.defrecordp(
-    :sp_user_type_ref,
-    Record.extract(:sp_user_type_ref, from_lib: "spectra/include/spectra_internal.hrl")
   )
 
   Record.defrecordp(
@@ -46,11 +36,6 @@ defmodule PhoenixSpectral do
   Record.defrecordp(
     :sp_union,
     Record.extract(:sp_union, from_lib: "spectra/include/spectra_internal.hrl")
-  )
-
-  Record.defrecordp(
-    :sp_remote_type,
-    Record.extract(:sp_remote_type, from_lib: "spectra/include/spectra_internal.hrl")
   )
 
   @doc """
@@ -151,7 +136,7 @@ defmodule PhoenixSpectral do
 
   defp add_response_headers(response, controller, headers_type) do
     type_info = controller.__spectra_type_info__()
-    fields = map_fields(headers_type, type_info)
+    fields = PhoenixSpectral.Internal.map_fields(headers_type, type_info)
 
     Enum.reduce(fields, response, fn field, acc ->
       literal_map_field(kind: kind, binary_name: binary_name, val_type: val_type) = field
@@ -193,7 +178,7 @@ defmodule PhoenixSpectral do
 
   defp add_header_parameters(endpoint, controller, headers_type) do
     type_info = controller.__spectra_type_info__()
-    fields = map_fields(headers_type, type_info)
+    fields = PhoenixSpectral.Internal.map_fields(headers_type, type_info)
 
     Enum.reduce(fields, endpoint, fn field, ep ->
       literal_map_field(kind: kind, binary_name: binary_name, val_type: val_type) = field
@@ -211,7 +196,7 @@ defmodule PhoenixSpectral do
 
   defp add_query_parameters(endpoint, controller, query_params_type) do
     type_info = controller.__spectra_type_info__()
-    fields = map_fields(query_params_type, type_info)
+    fields = PhoenixSpectral.Internal.map_fields(query_params_type, type_info)
 
     Enum.reduce(fields, endpoint, fn field, ep ->
       literal_map_field(kind: kind, binary_name: binary_name, val_type: val_type) = field
@@ -227,19 +212,6 @@ defmodule PhoenixSpectral do
     end)
   end
 
-  def map_fields(sp_user_type_ref(type_name: name), type_info) do
-    {:ok, resolved} = Spectral.TypeInfo.find_type(type_info, name, 0)
-    map_fields(resolved, type_info)
-  end
-
-  def map_fields(sp_remote_type(mfargs: {mod, name, args}), _type_info) do
-    remote_type_info = mod.__spectra_type_info__()
-    {:ok, resolved} = Spectral.TypeInfo.find_type(remote_type_info, name, length(args))
-    map_fields(resolved, remote_type_info)
-  end
-
-  def map_fields(sp_map(fields: fields), _type_info), do: fields
-
   @path_param_regex ~r/:([a-zA-Z_][a-zA-Z0-9_]*)/
 
   defp phoenix_path_to_openapi_path(path) do
@@ -248,7 +220,7 @@ defmodule PhoenixSpectral do
 
   defp add_path_parameters(endpoint, controller, path_args_type) do
     type_info = controller.__spectra_type_info__()
-    fields = map_fields(path_args_type, type_info)
+    fields = PhoenixSpectral.Internal.map_fields(path_args_type, type_info)
 
     Enum.reduce(fields, endpoint, fn field, ep ->
       literal_map_field(binary_name: binary_name, val_type: val_type) = field
