@@ -41,7 +41,8 @@ defmodule PhoenixSpectral.MixProject do
   defp deps do
     [
       {:phoenix, "~> 1.7"},
-      {:spectral, "~> 0.9.2"},
+      {:spectral, github: "andreashasse/spectral", branch: "eval-spectra-elixir-struct-defaults", override: true},
+      {:spectra, github: "andreashasse/spectra", branch: "elixir-struct-defaults", override: true},
       {:jason, "~> 1.0", only: [:dev, :test]},
       {:ex_doc, ">= 0.0.0", only: :dev, runtime: false},
       {:credo, "~> 1.7", only: [:dev, :test], runtime: false},

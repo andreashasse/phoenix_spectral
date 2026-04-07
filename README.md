@@ -172,6 +172,74 @@ end
 
 **When a conn is returned, PhoenixSpectral passes it through without schema validation.** The typespec still documents the endpoint for the OpenAPI spec, but the actual response is your responsibility.
 
+## Ecto schemas
+
+PhoenixSpectral works directly with Ecto schema structs. Two features in Spectral make this practical: struct defaults and field filtering with `only`.
+
+### Struct defaults
+
+When decoding a JSON request body into a struct, fields absent from the JSON are filled from the struct's `defstruct` defaults — the same values you get from `%MyStruct{}`. Whether a field is required or optional in the JSON depends on its default and type:
+
+| Struct default | Type allows `nil`? | JSON field missing → |
+|---|---|---|
+| any non-`nil` value | either | struct default used |
+| `nil` | yes (`T \| nil`) | `nil` |
+| `nil` | no | **error** — field is required |
+
+This means Ecto fields declared with `timestamps()` (which default to `nil`) are handled automatically: they are optional on input (the client omits them) and omitted from output when `nil`. No special handling required.
+
+### Field filtering with `only`
+
+The `only` option restricts which struct fields appear in encode, decode, and schema generation. Fields not in the list are silently dropped on encode and filled from struct defaults on decode. This is the Ecto equivalent of `@derive {Jason.Encoder, only: [...]}`.
+
+```elixir
+defmodule MyApp.User do
+  use Ecto.Schema
+  use Spectral
+
+  schema "users" do
+    field :name, :string
+    field :email, :string
+    field :password_hash, :string
+    has_many :posts, MyApp.Post
+    timestamps()
+  end
+
+  # Expose only name and email. password_hash, posts association, and
+  # timestamps are excluded — Spectral never tries to encode or decode them.
+  spectral only: [:name, :email]
+  @type public_t :: %__MODULE__{
+          name: String.t() | nil,
+          email: String.t() | nil,
+          password_hash: String.t() | nil,
+          posts: term(),
+          inserted_at: DateTime.t() | nil,
+          updated_at: DateTime.t() | nil
+        }
+end
+```
+
+You can define multiple types on the same module for different API views — for example a `create_t` for write input and a `response_t` for read output, each with a different `only` list.
+
+### `only` without Ecto
+
+`only` is also useful on plain Elixir structs to expose different views of the same struct or to keep a single struct for both internal and external use:
+
+```elixir
+defmodule User do
+  use Spectral
+
+  defstruct [:id, :name, :email, :password_hash]
+
+  @type t :: %User{id: pos_integer(), name: String.t(), email: String.t(), password_hash: binary() | nil}
+
+  spectral only: [:id, :name, :email]
+  @type public_t :: %User{id: pos_integer(), name: String.t(), email: String.t(), password_hash: binary() | nil}
+end
+```
+
+The example app in [`example/`](https://github.com/andreashasse/phoenix_spectral/tree/main/example) demonstrates both features: `User` uses `only` to hide `password_hash`, and `UserInput` uses a nil struct default to make `email` optional in the request body.
+
 ## Request/Response Behavior
 
 - **Invalid requests** (type mismatch, missing required fields) return `400 Bad Request` with a JSON error body listing the validation errors

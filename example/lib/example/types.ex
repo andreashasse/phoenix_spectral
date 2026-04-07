@@ -51,11 +51,16 @@ defmodule Example.Types do
   defmodule User do
     use Spectral
 
-    defstruct [:id, :name, :email, :created_at]
+    # password_hash is stored internally but never exposed via the API.
+    # The `only:` option restricts encode, decode, and schema generation to
+    # the listed fields; password_hash is filled from its struct default (nil)
+    # on decode and omitted on encode.
+    defstruct [:id, :name, :email, :password_hash, :created_at]
 
     spectral(
       title: "User",
       description: "A user resource",
+      only: [:id, :name, :email, :created_at],
       examples_function: {__MODULE__, :examples, []}
     )
 
@@ -63,6 +68,7 @@ defmodule Example.Types do
             id: non_neg_integer() | nil,
             name: String.t(),
             email: String.t() | nil,
+            password_hash: binary() | nil,
             created_at: DateTime.t() | nil
           }
 
@@ -79,22 +85,25 @@ defmodule Example.Types do
   defmodule UserInput do
     use Spectral
 
-    defstruct [:name, :email]
+    # email has a nil struct default and a nullable type, so it is optional in
+    # the request body — a missing email field decodes as nil rather than an error.
+    defstruct [:name, email: nil]
 
     spectral(
       title: "UserInput",
-      description: "Input for creating or updating a user",
+      description: "Input for creating or updating a user. email is optional.",
       examples_function: {__MODULE__, :examples, []}
     )
 
     @type t :: %UserInput{
             name: String.t(),
-            email: String.t()
+            email: String.t() | nil
           }
 
     def examples do
       [
-        %UserInput{name: "Alice", email: "alice@example.com"}
+        %UserInput{name: "Alice", email: "alice@example.com"},
+        %UserInput{name: "Bob"}
       ]
     end
   end
