@@ -43,4 +43,24 @@ defmodule TestUserController do
   def show_by_integer_id(_conn, %{id: id}, %{}, _headers, _body) do
     {200, %{}, %TestUser{id: id, name: "Alice", email: "alice@example.com"}}
   end
+
+  spectral(summary: "Get user (public)", description: "Returns user without sensitive fields")
+
+  @spec show_public(Plug.Conn.t(), %{id: String.t()}, %{}, %{}, nil) ::
+          {200, %{}, TestUserPublic.t()} | {404, %{}, TestError.t()}
+  def show_public(_conn, %{id: id}, %{}, _headers, _body) do
+    case id do
+      "1" ->
+        {200, %{},
+         %TestUserPublic{
+           id: 1,
+           name: "Alice",
+           email: "alice@example.com",
+           password_hash: "secret"
+         }}
+
+      _ ->
+        {404, %{}, %TestError{message: "User not found"}}
+    end
+  end
 end
