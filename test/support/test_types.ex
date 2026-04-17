@@ -22,7 +22,7 @@ defmodule TestUserInput do
   spectral(title: "UserInput", description: "Input for creating a user")
 
   @type t :: %TestUserInput{
-          name: String.t() | nil,
+          name: String.t(),
           email: String.t() | nil
         }
 end

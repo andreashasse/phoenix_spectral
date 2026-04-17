@@ -36,7 +36,14 @@ check:
 	}; \
 	_check_body_absent() { \
 		local desc=$$1 key=$$2; shift 2; \
-		local body; body=$$(curl -s "$$@"); \
+		local http_code body; \
+		body=$$(curl -s -w "\n%{http_code}" "$$@"); \
+		http_code=$$(echo "$$body" | tail -1); \
+		body=$$(echo "$$body" | head -n -1); \
+		if [ "$$http_code" != "200" ]; then \
+			echo "FAIL: $$desc — expected 200, got $$http_code"; \
+			exit 1; \
+		fi; \
 		if echo "$$body" | grep -q "\"$$key\""; then \
 			echo "FAIL: $$desc — \"$$key\" found in response: $$body"; \
 			exit 1; \
@@ -72,8 +79,8 @@ check:
 	_check "GET /openapi returns 200" \
 		200 $(BASE_URL)/openapi
 
-integration-test: start
-	$(MAKE) wait && $(MAKE) check; RET=$$?; $(MAKE) stop; exit $$RET
+integration-test:
+	mix test
 
 kill-port:
 	@lsof -ti:$(PORT) | xargs kill -9 2>/dev/null; true

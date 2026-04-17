@@ -41,13 +41,22 @@ defmodule PhoenixSpectral.ControllerTest do
   defp action_from_path(:put, "/users/:id"), do: :update
 
   describe "PhoenixSpectral.Controller with invalid request body" do
+    test "returns 400 when a required field (name) is absent from the body" do
+      conn = dispatch(:post, "/users", %{})
+
+      assert conn.status == 400
+      body = Jason.decode!(conn.resp_body)
+      assert body["error"] == "Bad Request"
+      assert [%{"type" => "type_mismatch", "location" => []}] = body["details"]
+    end
+
     test "returns 400 with field-level detail when a field has the wrong type" do
       conn = dispatch(:post, "/users", %{"name" => 123, "email" => "test@example.com"})
 
       assert conn.status == 400
       body = Jason.decode!(conn.resp_body)
       assert body["error"] == "Bad Request"
-      assert [%{"type" => "no_match", "location" => ["name"]}] = body["details"]
+      assert [%{"type" => "type_mismatch", "location" => ["name"]}] = body["details"]
     end
 
     test "succeeds when optional fields are missing (struct defaults)" do
