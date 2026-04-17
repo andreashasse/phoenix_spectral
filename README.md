@@ -174,7 +174,7 @@ end
 
 ## Ecto schemas
 
-PhoenixSpectral works directly with Ecto schema structs. Two features in Spectral make this practical: struct defaults and field filtering with `only`.
+PhoenixSpectral can work directly with Ecto schema structs. Two features in Spectral make this practical: struct defaults and field filtering with `only`.
 
 ### Struct defaults
 
