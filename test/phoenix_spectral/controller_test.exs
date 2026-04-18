@@ -50,6 +50,15 @@ defmodule PhoenixSpectral.ControllerTest do
       assert [%{"type" => "type_mismatch", "location" => []}] = body["details"]
     end
 
+    test "returns 400 when a required field is absent but other fields are present" do
+      conn = dispatch(:post, "/users", %{"email" => "bob@example.com"})
+
+      assert conn.status == 400
+      body = Jason.decode!(conn.resp_body)
+      assert body["error"] == "Bad Request"
+      assert [%{"type" => "missing_data", "location" => ["name"]}] = body["details"]
+    end
+
     test "returns 400 with field-level detail when a field has the wrong type" do
       conn = dispatch(:post, "/users", %{"name" => 123, "email" => "test@example.com"})
 
