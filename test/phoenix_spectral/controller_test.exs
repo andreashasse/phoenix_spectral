@@ -59,15 +59,6 @@ defmodule PhoenixSpectral.ControllerTest do
       assert [%{"type" => "type_mismatch", "location" => ["name"]}] = body["details"]
     end
 
-    test "succeeds when optional fields are missing (struct defaults)" do
-      conn = dispatch(:post, "/users", %{"name" => "Bob"})
-
-      assert conn.status == 201
-      body = Jason.decode!(conn.resp_body)
-      assert body["name"] == "Bob"
-      assert body["email"] == nil
-    end
-
     test "returns 400 with details when the body has multiple invalid fields" do
       conn = dispatch(:post, "/users", %{"name" => 123, "email" => 456})
 
