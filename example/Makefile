@@ -15,49 +15,10 @@ stop:
 
 restart: stop start
 
-wait:
-	@echo "Waiting for server on port $(PORT)..."
-	@for i in $$(seq 1 30); do \
-		curl -sf $(BASE_URL)/users > /dev/null 2>&1 && echo "Server ready." && exit 0; \
-		sleep 1; \
-	done; \
-	echo "Server did not become ready in 30 seconds." && exit 1
-
-check:
-	@_check() { \
-		local desc=$$1 expected=$$2; shift 2; \
-		local actual; actual=$$(curl -s -o /dev/null -w "%{http_code}" "$$@"); \
-		if [ "$$actual" = "$$expected" ]; then \
-			echo "PASS: $$desc"; \
-		else \
-			echo "FAIL: $$desc — expected $$expected, got $$actual"; \
-			exit 1; \
-		fi; \
-	}; \
-	_check "GET /users returns 200" \
-		200 $(BASE_URL)/users; \
-	_check "GET /users/user:1 returns 200" \
-		200 "$(BASE_URL)/users/user:1"; \
-	_check "GET /users/user:99 returns 404" \
-		404 "$(BASE_URL)/users/user:99"; \
-	_check "POST /users without x-api-key returns 400" \
-		400 -X POST \
-		    -H "content-type: application/json" \
-		    -d '{"name":"Test","email":"test@example.com"}' \
-		    $(BASE_URL)/users; \
-	_check "POST /users with x-api-key returns 201" \
-		201 -X POST \
-		    -H "content-type: application/json" \
-		    -H "x-api-key: secret" \
-		    -d '{"name":"Test","email":"test@example.com"}' \
-		    $(BASE_URL)/users; \
-	_check "GET /openapi returns 200" \
-		200 $(BASE_URL)/openapi
-
-integration-test: start
-	$(MAKE) wait && $(MAKE) check; RET=$$?; $(MAKE) stop; exit $$RET
+integration-test:
+	mix test
 
 kill-port:
 	@lsof -ti:$(PORT) | xargs kill -9 2>/dev/null; true
 
-.PHONY: start stop restart wait check integration-test kill-port
+.PHONY: start stop restart integration-test kill-port

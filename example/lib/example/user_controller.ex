@@ -10,8 +10,20 @@ defmodule Example.UserController do
   {:ok, dt, _} = DateTime.from_iso8601("2024-01-15T09:00:00Z")
 
   @users %{
-    "1" => %User{id: 1, name: "Andreas", email: "andreas@example.com", created_at: dt},
-    "2" => %User{id: 2, name: "Hasse", email: "hasse@example.com", created_at: dt}
+    "1" => %User{
+      id: 1,
+      name: "Andreas",
+      email: "andreas@example.com",
+      password_hash: "hashed_secret_1",
+      created_at: dt
+    },
+    "2" => %User{
+      id: 2,
+      name: "Hasse",
+      email: "hasse@example.com",
+      password_hash: "hashed_secret_2",
+      created_at: dt
+    }
   }
 
   spectral summary: "List users", description: "Returns all users"
@@ -34,7 +46,15 @@ defmodule Example.UserController do
   @spec create(Plug.Conn.t(), %{}, %{}, write_headers(), UserInput.t()) ::
           {201, %{}, User.t()} | {422, %{}, Error.t()}
   def create(_conn, _path_args, %{}, _headers, body) do
-    new_user = %User{id: 3, name: body.name, email: body.email, created_at: DateTime.utc_now()}
+    new_user = %User{
+      id: 3,
+      name: body.name,
+      email: body.email,
+      # password_hash is set server-side — it is never received from or sent to the client
+      password_hash: "hashed_#{body.name}",
+      created_at: DateTime.utc_now()
+    }
+
     {201, %{}, new_user}
   end
 
@@ -47,7 +67,7 @@ defmodule Example.UserController do
         {404, %{}, %Error{message: "User #{id} not found"}}
 
       %User{} = user ->
-        updated = %User{user | name: body.name, email: body.email, created_at: user.created_at}
+        updated = %User{user | name: body.name, email: body.email}
         {200, %{}, updated}
     end
   end

@@ -41,6 +41,24 @@ defmodule PhoenixSpectral.ControllerTest do
   defp action_from_path(:put, "/users/:id"), do: :update
 
   describe "PhoenixSpectral.Controller with invalid request body" do
+    test "returns 400 when a required field (name) is absent from the body" do
+      conn = dispatch(:post, "/users", %{})
+
+      assert conn.status == 400
+      body = Jason.decode!(conn.resp_body)
+      assert body["error"] == "Bad Request"
+      assert [%{"type" => "type_mismatch", "location" => []}] = body["details"]
+    end
+
+    test "returns 400 when a required field is absent but other fields are present" do
+      conn = dispatch(:post, "/users", %{"email" => "bob@example.com"})
+
+      assert conn.status == 400
+      body = Jason.decode!(conn.resp_body)
+      assert body["error"] == "Bad Request"
+      assert [%{"type" => "missing_data", "location" => ["name"]}] = body["details"]
+    end
+
     test "returns 400 with field-level detail when a field has the wrong type" do
       conn = dispatch(:post, "/users", %{"name" => 123, "email" => "test@example.com"})
 
@@ -48,15 +66,6 @@ defmodule PhoenixSpectral.ControllerTest do
       body = Jason.decode!(conn.resp_body)
       assert body["error"] == "Bad Request"
       assert [%{"type" => "type_mismatch", "location" => ["name"]}] = body["details"]
-    end
-
-    test "returns 400 with field-level detail when a required field is missing" do
-      conn = dispatch(:post, "/users", %{"email" => "test@example.com"})
-
-      assert conn.status == 400
-      body = Jason.decode!(conn.resp_body)
-      assert body["error"] == "Bad Request"
-      assert [%{"type" => "missing_data", "location" => ["name"]}] = body["details"]
     end
 
     test "returns 400 with details when the body has multiple invalid fields" do
@@ -252,6 +261,56 @@ defmodule PhoenixSpectral.ControllerTest do
       assert conn.status == 200
       assert conn.resp_body == "file content"
       assert {"content-type", "text/plain; charset=utf-8"} in conn.resp_headers
+    end
+  end
+
+  describe "PhoenixSpectral.Controller with struct defaults" do
+    test "decoding succeeds with missing optional fields (struct defaults)" do
+      conn = dispatch(:post, "/users", %{"name" => "Charlie"})
+
+      assert conn.status == 201
+      body = Jason.decode!(conn.resp_body)
+      assert body["name"] == "Charlie"
+      assert body["email"] == nil
+      assert body["id"] == 2
+    end
+
+    test "response with all fields populated" do
+      conn = dispatch(:post, "/users", %{"name" => "Dana", "email" => "dana@example.com"})
+
+      assert conn.status == 201
+      body = Jason.decode!(conn.resp_body)
+      assert body["name"] == "Dana"
+      assert body["email"] == "dana@example.com"
+      assert body["id"] == 2
+    end
+  end
+
+  describe "PhoenixSpectral.Controller with field filtering (only:)" do
+    defp dispatch_public(action, path_params) do
+      call(TestUserController, action, :get, "/", nil, path_params, %{}, [])
+    end
+
+    test "response excludes filtered-out fields (password_hash)" do
+      conn = dispatch_public(:show_public, %{"id" => "1"})
+
+      assert conn.status == 200
+      body = Jason.decode!(conn.resp_body)
+      assert body["id"] == 1
+      assert body["name"] == "Alice"
+      assert body["email"] == "alice@example.com"
+      # password_hash should not be present due to only: [:id, :name, :email]
+      assert !Map.has_key?(body, "password_hash")
+    end
+
+    test "response for non-existent user still excludes filtered fields" do
+      conn = dispatch_public(:show_public, %{"id" => "999"})
+
+      assert conn.status == 404
+      body = Jason.decode!(conn.resp_body)
+      assert body["message"] == "User not found"
+      # Error response doesn't have password_hash
+      assert !Map.has_key?(body, "password_hash")
     end
   end
 

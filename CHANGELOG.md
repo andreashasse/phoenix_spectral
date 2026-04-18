@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-04-18
+
+### Added
+
+- Documented and demonstrated support for struct defaults: JSON fields absent from a request body are filled from the struct's `defstruct` defaults. Fields whose default is `nil` are required on input only when their type does not allow `nil`.
+- Documented and demonstrated field filtering via Spectral's `only:` option: fields outside the list are dropped on encode and filled from defaults on decode, making it straightforward to hide sensitive fields (e.g. `password_hash`) from responses.
+- Example app tests migrated to Elixir `Phoenix.ConnTest` so the full request/response flow is exercised by `mix test` instead of external `curl` scripts.
+
+### Changed
+
+- Bumped `spectral` requirement to `~> 0.11.0`. **Users with custom `Spectral.Codec` implementations must update their callbacks** to the new arities (`encode/7`, `decode/7`, `schema/6` with the new `_config` parameter); see the updated example codec in `example/lib/example/types.ex`.
+
+### Fixed
+
+- Module docstrings now correctly state that PhoenixSpectral emits OpenAPI 3.1 (previously said 3.0).
+
 ## [0.3.3] - 2026-04-02
 
 ### Changed

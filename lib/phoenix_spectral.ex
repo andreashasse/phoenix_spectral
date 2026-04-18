@@ -1,6 +1,6 @@
 defmodule PhoenixSpectral do
   @moduledoc """
-  Generates OpenAPI 3.0 specifications from Phoenix router and typed controllers.
+  Generates OpenAPI 3.1 specifications from Phoenix router and typed controllers.
 
   Controllers that `use PhoenixSpectral.Controller` and define typespecs on their
   action functions become the single source of truth for OpenAPI documentation.
@@ -39,7 +39,7 @@ defmodule PhoenixSpectral do
   )
 
   @doc """
-  Generates an OpenAPI 3.0 specification from a Phoenix router module.
+  Generates an OpenAPI 3.1 specification from a Phoenix router module.
 
   Introspects all routes in the router, extracts type information from
   controllers, and builds an OpenAPI spec.
@@ -61,7 +61,7 @@ defmodule PhoenixSpectral do
 
   ## Returns
 
-  - `{:ok, iodata}` - Complete OpenAPI 3.0 specification as JSON iodata
+  - `{:ok, iodata}` - Complete OpenAPI 3.1 specification as JSON iodata
   - `{:error, errors}` - List of errors if generation fails
 
   ## Parameter descriptions via typed type aliases
