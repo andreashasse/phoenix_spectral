@@ -67,6 +67,19 @@ sp_simple_type(type: :binary)                   # construction and matching
 
 All records use `Record.extract` from the `.hrl` file directly.
 
+## Example App
+
+A self-contained Phoenix app lives in `example/`. It demonstrates a real users API (index, show, create, update, delete) with OpenAPI generation, an `x-api-key` required header on write endpoints, a `UserId` type alias with a description annotation, and a `Spectral.Codec.DateTime` codec.
+
+```bash
+cd example
+mix deps.get      # first time only
+mix test          # run the integration tests (starts the app in-process)
+mix phx.server    # start the server on port 4000
+```
+
+The example's `mix.exs` points `{:phoenix_spectral, path: ".."}` so it always uses the local source. Run its tests when changing anything that touches the Controller or OpenAPI generation pipelines — they cover live HTTP round-trips that the unit tests don't.
+
 ## Test Support
 
 Test support modules live in `test/support/` and are compiled via `elixirc_paths(:test)` in mix.exs. They must be separate files (not inline in test files) because `__spectra_type_info__/0` requires beam files on disk.
