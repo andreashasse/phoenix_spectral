@@ -1,6 +1,7 @@
 ---
 name: finish-up-pr
 description: Finalize a PR by cleaning up comments, verifying test coverage, checking README accuracy, tightening type specs, and reviewing the PR title and description.
+disable-model-invocation: true
 ---
 
 # Finish Up PR Skill
