@@ -9,7 +9,7 @@ Add `phoenix_spectral` to your dependencies in `mix.exs`:
 ```elixir
 def deps do
   [
-    {:phoenix_spectral, "~> 0.4.0"}
+    {:phoenix_spectral, "~> 0.5.0"}
   ]
 end
 ```
@@ -263,18 +263,18 @@ PhoenixSpectral delegates encoding, decoding, and schema generation to [Spectral
 
 ### Custom codecs
 
-Spectral ships codecs for `DateTime`, `Date`, and `MapSet` that are not active by default. Register them — and any application-level custom codecs — under the `:spectra` application:
+Spectral automatically registers its built-in codecs (`Spectral.Codec.DateTime`, `Spectral.Codec.Date`, `Spectral.Codec.MapSet`, `Spectral.Codec.String`) at application startup — no configuration needed.
+
+To register application-level custom codecs, or to override a built-in, add them under the `:spectra` application:
 
 ```elixir
 # config/config.exs
 config :spectra, :codecs, %{
-  {DateTime, {:type, :t, 0}} => Spectral.Codec.DateTime,
-  {Date,     {:type, :t, 0}} => Spectral.Codec.Date,
-  {MapSet,   {:type, :t, 1}} => Spectral.Codec.MapSet
+  {MyApp.Money, {:type, :t, 0}} => MyApp.Codec.Money
 }
 ```
 
-The key is `{ModuleOwningType, {:type, type_name, arity}}`. See the [Spectral codec guide](https://github.com/andreashasse/spectral) for writing your own codecs with `use Spectral.Codec`.
+The key is `{ModuleOwningType, {:type, type_name, arity}}`. User-configured codecs always take precedence over built-ins. See the [Spectral codec guide](https://github.com/andreashasse/spectral) for writing your own codecs with `use Spectral.Codec`.
 
 ### Production: enable the module types cache
 
