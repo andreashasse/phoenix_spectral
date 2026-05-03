@@ -5,46 +5,44 @@ defmodule Example.Types do
 
     Stored internally as a plain string (e.g. `"1"`), but encoded in JSON and
     URL path segments with a `"user:"` prefix (e.g. `"user:1"`).
-
-    The prefix is configured via `type_parameters` so the same codec module
-    could be reused for other resource types (e.g. `"org:"`) just by changing
-    the annotation.
     """
 
     use Spectral
     use Spectral.Codec
 
+    @prefix "user:"
+
     spectral(
       title: "User ID",
-      description: "A prefixed user identifier (e.g. \"user:1\")",
-      type_parameters: "user:"
+      description: "A prefixed user identifier (e.g. \"user:1\")"
     )
 
     @type t :: String.t()
 
     @impl Spectral.Codec
-    def encode(_format, UserId, {:type, :t, 0}, id, _sp_type, prefix, _config) when is_binary(id) do
-      {:ok, prefix <> id}
+    def encode(_format, _caller_type_info, {:type, :t, 0}, _target_type, id, _config)
+        when is_binary(id) do
+      {:ok, @prefix <> id}
     end
 
-    def encode(_format, _module, _type_ref, _data, _sp_type, _params, _config), do: :continue
+    def encode(_format, _caller_type_info, _type_ref, _target_type, _data, _config), do: :continue
 
     @impl Spectral.Codec
-    def decode(_format, UserId, {:type, :t, 0}, encoded, _sp_type, prefix, _config)
+    def decode(_format, _caller_type_info, {:type, :t, 0}, _target_type, encoded, _config)
         when is_binary(encoded) do
-      prefix_len = byte_size(prefix)
+      prefix_len = byte_size(@prefix)
 
       case encoded do
-        <<^prefix::binary-size(prefix_len), id::binary>> -> {:ok, id}
-        _ -> {:error, ["expected ID with prefix \"#{prefix}\", got: #{inspect(encoded)}"]}
+        <<prefix::binary-size(prefix_len), id::binary>> when prefix == @prefix -> {:ok, id}
+        _ -> {:error, ["expected ID with prefix \"#{@prefix}\", got: #{inspect(encoded)}"]}
       end
     end
 
-    def decode(_format, _module, _type_ref, _input, _sp_type, _params, _config), do: :continue
+    def decode(_format, _caller_type_info, _type_ref, _target_type, _input, _config), do: :continue
 
     @impl Spectral.Codec
-    def schema(_format, UserId, {:type, :t, 0}, _sp_type, prefix, _config) do
-      %{type: "string", pattern: "^" <> prefix}
+    def schema(_format, _caller_type_info, {:type, :t, 0}, _target_type, _config) do
+      %{type: "string", pattern: "^" <> @prefix}
     end
   end
 
