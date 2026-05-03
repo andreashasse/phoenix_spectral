@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-05-03
+
+### Added
+
+- Built-in codecs (`Spectral.Codec.Date`, `Spectral.Codec.DateTime`, `Spectral.Codec.MapSet`, `Spectral.Codec.String`) are now automatically registered at application startup. Explicit `config :spectra, :codecs, ...` configuration is no longer required for these codecs — though explicit config still takes precedence if present.
+
+### Changed
+
+- Bumped `spectral` requirement to `~> 0.12.0`. **Users with custom `Spectral.Codec` implementations must update their callbacks** to the new 6-argument signatures: the separate `params` argument has been removed — use `:spectra_type.parameters(target_type)` in your callback to read `type_parameters` instead. The `module` argument is renamed `caller_type_info` and `sp_type` is renamed `target_type`. See the [spectral 0.12.0 changelog](https://github.com/andreashasse/spectral) for details.
+
 ## [0.4.0] - 2026-04-18
 
 ### Added
