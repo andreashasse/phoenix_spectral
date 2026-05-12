@@ -92,12 +92,7 @@ defmodule PhoenixSpectral do
       |> Enum.filter(&api_route?/1)
       |> Enum.map(&route_to_endpoint/1)
 
-    result = :spectra_openapi.endpoints_to_openapi(metadata, endpoints, options)
-
-    case result do
-      {:ok, value} -> {:ok, value}
-      {:error, errors} -> {:error, errors}
-    end
+    :spectra_openapi.endpoints_to_openapi(metadata, endpoints, options)
   end
 
   defp api_route?(%{plug: plug}) do
