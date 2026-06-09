@@ -30,10 +30,8 @@ defmodule Example.Types do
     @impl Spectral.Codec
     def decode(_format, _caller_type_info, {:type, :t, 0}, _target_type, encoded, _config)
         when is_binary(encoded) do
-      prefix_len = byte_size(@prefix)
-
       case encoded do
-        <<prefix::binary-size(prefix_len), id::binary>> when prefix == @prefix -> {:ok, id}
+        <<@prefix, id::binary>> -> {:ok, id}
         _ -> {:error, ["expected ID with prefix \"#{@prefix}\", got: #{inspect(encoded)}"]}
       end
     end
