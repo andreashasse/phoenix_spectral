@@ -135,7 +135,6 @@ defmodule ExampleTest do
 
       assert schemes["bearer_auth"]["type"] == "http"
       assert schemes["bearer_auth"]["scheme"] == "bearer"
-      assert schemes["bearer_auth"]["bearerFormat"] == "JWT"
 
       assert spec["security"] == [%{"api_key" => [], "bearer_auth" => []}]
     end

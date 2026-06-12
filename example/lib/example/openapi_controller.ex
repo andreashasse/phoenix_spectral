@@ -27,7 +27,6 @@ defmodule Example.OpenAPIController do
       "bearer_auth" => %{
         type: "http",
         scheme: "bearer",
-        bearerFormat: "JWT",
         description:
           "Bearer token required for write endpoints. Paste only the token — " <>
             "Swagger UI adds the \"Bearer \" prefix when it sends the Authorization header."
