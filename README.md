@@ -154,7 +154,7 @@ end
 | `:license` | no | Map with `:name` and optional `:url`, `:identifier` |
 | `:servers` | no | List of maps with `:url` and optional `:description` |
 | `:security_schemes` | no | Map of named [Security Scheme Objects](https://spec.openapis.org/oas/v3.1.0#security-scheme-object), emitted under `components.securitySchemes`. This is what makes Swagger UI render the **Authorize** button. E.g. `%{"api_key" => %{type: "apiKey", in: "header", name: "x-api-key"}}` |
-| `:security` | no | List of [Security Requirement Objects](https://spec.openapis.org/oas/v3.1.0#security-requirement-object) applied as the global default to every operation, e.g. `[%{"api_key" => []}]`. Each key names a scheme from `:security_schemes`; the list holds required scopes (empty for apiKey/http) |
+| `:security` | no | List of [Security Requirement Objects](https://spec.openapis.org/oas/v3.1.0#security-requirement-object) applied as the global default to every operation, e.g. `[%{"api_key" => []}]`. Each key should name a scheme from `:security_schemes` (the list holds required scopes, empty for apiKey/http). Passed through to the spec as-is — not validated by PhoenixSpectral |
 | `:openapi_url` | no | URL path for the JSON spec, used by Swagger UI. Defaults to the path of this controller's `:show` route as declared in the router (scope prefixes included). Set explicitly to use a different path. |
 | `:cache` | no | Cache the generated JSON in `:persistent_term` (default: `false`) |
 

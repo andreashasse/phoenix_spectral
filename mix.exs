@@ -42,6 +42,7 @@ defmodule PhoenixSpectral.MixProject do
     [
       {:phoenix, "~> 1.7"},
       {:spectral, "~> 0.13.0"},
+      {:spectra, "~> 0.13.2"},
       {:jason, "~> 1.0", only: [:dev, :test]},
       {:ex_doc, ">= 0.0.0", only: :dev, runtime: false},
       {:credo, "~> 1.7", only: [:dev, :test], runtime: false},

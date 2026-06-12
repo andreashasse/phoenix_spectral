@@ -5,7 +5,7 @@ defmodule Example.OpenAPIController do
     version: "1.0.0",
     summary: "A simple user management API",
     description:
-      "Demonstrates PhoenixSpectral with full OpenAPI 3.0 spec generation from typespecs.",
+      "Demonstrates PhoenixSpectral with full OpenAPI 3.1 spec generation from typespecs.",
     terms_of_service: "https://example.com/terms",
     contact: %{
       name: "Example Support",

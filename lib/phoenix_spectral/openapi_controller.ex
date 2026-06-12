@@ -32,8 +32,9 @@ defmodule PhoenixSpectral.OpenAPIController do
     Each value is an OpenAPI Security Scheme Object, e.g.
     `%{"api_key" => %{type: "apiKey", in: "header", name: "x-api-key"}}`
   - `:security` — (optional) list of security requirement objects applied as the global default
-    to every operation, e.g. `[%{"api_key" => []}]`. Each key must name a scheme declared in
-    `:security_schemes`; the list value holds required scopes (empty for apiKey/http schemes)
+    to every operation, e.g. `[%{"api_key" => []}]`. Each key should name a scheme declared in
+    `:security_schemes` (the value holds required scopes, empty for apiKey/http schemes). This is
+    passed through to the OpenAPI spec as-is — PhoenixSpectral does not validate it.
   - `:openapi_url` — URL path where the JSON spec is served, used by Swagger UI. Defaults to
     the path of this controller's `:show` route as declared in the router (scope prefixes
     included). Set explicitly to use a different path.
