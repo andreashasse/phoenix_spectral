@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- OpenAPI security schemes via two new `PhoenixSpectral.OpenAPIController` options: `:security_schemes` (a map of named Security Scheme Objects, emitted under `components.securitySchemes`) and `:security` (a list of Security Requirement Objects applied as the global default to every operation). Declaring `:security_schemes` is what makes Swagger UI render the **Authorize** button. Any scheme type works — `apiKey`, `http`/`bearer`, `oauth2`, `openIdConnect`. The `example/` app demonstrates both an `x-api-key` (`apiKey`) header validated from the controller typespec and a `Bearer` token (`http`/`bearer`) verified by a plug that strips the `Bearer ` prefix at runtime. Requires the corresponding `spectra` support ([spectra#181](https://github.com/andreashasse/spectra/pull/181)).
+- OpenAPI security schemes via two new `PhoenixSpectral.OpenAPIController` options: `:security_schemes` (a map of named Security Scheme Objects, emitted under `components.securitySchemes`) and `:security` (a list of Security Requirement Objects applied as the global default to every operation). Declaring `:security_schemes` is what makes Swagger UI render the **Authorize** button. Any scheme type works — `apiKey`, `http`/`bearer`, `oauth2`, `openIdConnect`. The `example/` app demonstrates both an `x-api-key` (`apiKey`) header validated from the controller typespec and a `Bearer` token (`http`/`bearer`) verified by a plug that strips the `Bearer ` prefix at runtime. Requires `spectra` >= 0.13.2.
 
 ## [0.5.1] - 2026-06-09
 
