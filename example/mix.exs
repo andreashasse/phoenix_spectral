@@ -21,6 +21,10 @@ defmodule Example.MixProject do
   defp deps do
     [
       {:phoenix_spectral, path: ".."},
+      # Mirror phoenix_spectral's override so the example resolves the same
+      # unreleased spectra (security-scheme support, PR #181). Drop once released.
+      {:spectra,
+       github: "andreashasse/spectra", branch: "add-security-schemes", override: true},
       {:bandit, "~> 1.0"},
       {:jason, "~> 1.0"}
     ]
