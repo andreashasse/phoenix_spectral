@@ -4,7 +4,7 @@ defmodule PhoenixSpectral.MixProject do
   def project do
     [
       app: :phoenix_spectral,
-      version: "0.5.1",
+      version: "0.5.2",
       elixir: ">= 1.18.0",
       start_permanent: Mix.env() == :prod,
       elixirc_paths: elixirc_paths(Mix.env()),
@@ -41,7 +41,8 @@ defmodule PhoenixSpectral.MixProject do
   defp deps do
     [
       {:phoenix, "~> 1.7"},
-      {:spectral, "~> 0.12.0"},
+      {:spectral, "~> 0.13.0"},
+      {:spectra, "~> 0.13.2"},
       {:jason, "~> 1.0", only: [:dev, :test]},
       {:ex_doc, ">= 0.0.0", only: :dev, runtime: false},
       {:credo, "~> 1.7", only: [:dev, :test], runtime: false},

@@ -247,6 +247,62 @@ defmodule PhoenixSpectralTest do
       refute Map.has_key?(spec["info"], "description")
       refute Map.has_key?(spec, "servers")
     end
+
+    test "security_schemes are emitted under components.securitySchemes" do
+      # The scheme value is passed through verbatim as a JSON value (like schemas),
+      # so assert against the actually-served JSON where keys are encoded to strings.
+      {:ok, iodata} =
+        PhoenixSpectral.generate_openapi(
+          TestRouter,
+          %{
+            title: "Test API",
+            version: "1.0.0",
+            security_schemes: %{
+              "api_key" => %{
+                type: "apiKey",
+                in: "header",
+                name: "x-api-key",
+                description: "API key for authentication"
+              }
+            }
+          }
+        )
+
+      spec = Jason.decode!(IO.iodata_to_binary(iodata))
+      scheme = spec["components"]["securitySchemes"]["api_key"]
+      assert scheme["type"] == "apiKey"
+      assert scheme["in"] == "header"
+      assert scheme["name"] == "x-api-key"
+      assert scheme["description"] == "API key for authentication"
+    end
+
+    test "security requirement is included at top level" do
+      {:ok, spec} =
+        PhoenixSpectral.generate_openapi(
+          TestRouter,
+          %{
+            title: "Test API",
+            version: "1.0.0",
+            security_schemes: %{
+              "api_key" => %{type: "apiKey", in: "header", name: "x-api-key"}
+            },
+            security: [%{"api_key" => []}]
+          },
+          [:pre_encoded]
+        )
+
+      assert spec["security"] == [%{"api_key" => []}]
+    end
+
+    test "minimal metadata produces no securitySchemes or security keys" do
+      {:ok, spec} =
+        PhoenixSpectral.generate_openapi(TestRouter, %{title: "Test API", version: "1.0.0"}, [
+          :pre_encoded
+        ])
+
+      refute Map.has_key?(spec, "security")
+      refute Map.has_key?(spec["components"] || %{}, "securitySchemes")
+    end
   end
 
   describe "generate_openapi/2 with conn actions" do

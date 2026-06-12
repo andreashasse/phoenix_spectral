@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.2] - 2026-06-12
+
+### Added
+
+- OpenAPI security schemes via two new `PhoenixSpectral.OpenAPIController` options: `:security_schemes` (a map of named Security Scheme Objects, emitted under `components.securitySchemes`) and `:security` (a list of Security Requirement Objects applied as the global default to every operation). Declaring `:security_schemes` is what makes Swagger UI render the **Authorize** button.
+
 ## [0.5.1] - 2026-06-09
 
 ### Added
