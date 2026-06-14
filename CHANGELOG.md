@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.0] - 2026-06-14
+
 ### Added
 
 - `:on_invalid_request` option on `use PhoenixSpectral.Controller` — a 2-arity function or `{module, function}` tuple, called with `(conn, [%Spectral.Error{}])` when request validation fails, returning a `Plug.Conn`. Lets applications render validation failures into their own error envelope and status code instead of the built-in `400`.
