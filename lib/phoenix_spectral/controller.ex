@@ -29,7 +29,33 @@ defmodule PhoenixSpectral.Controller do
 
   ## Options
 
-  Options are forwarded to `use Phoenix.Controller` (e.g. `formats: [:json]`).
+  - `:on_invalid_request` — a 2-arity function or `{module, function}` tuple invoked
+    when request decoding/validation fails. It receives `(conn, [%Spectral.Error{}])`
+    and must return a `Plug.Conn` (typically via `Plug.Conn.send_resp/3`). Use this to
+    map validation failures into your application's own error envelope and status code.
+    When omitted, the default renderer (below) is used.
+
+  All other options are forwarded to `use Phoenix.Controller` (e.g. `formats: [:json]`).
+
+  ## Invalid request responses
+
+  By default, a failed request validation returns `400 Bad Request` with a JSON body:
+
+      {
+        "error": "Bad Request",
+        "details": [
+          {
+            "type": "no_match",
+            "location": ["currency"],
+            "message": "no_match at currency",
+            "got": "USD"
+          }
+        ]
+      }
+
+  Each detail carries the error `type`, the field `location` (as strings), a
+  human-readable `message`, and `got` — the offending value from the request — when
+  one is available. To produce a different shape or status, pass `:on_invalid_request`.
 
   ## Required vs optional query params and headers
 
@@ -116,9 +142,14 @@ defmodule PhoenixSpectral.Controller do
   )
 
   defmacro __using__(opts) do
+    {on_invalid_request, phoenix_opts} = Keyword.pop(opts, :on_invalid_request)
+
     quote do
-      use Phoenix.Controller, unquote(opts)
+      use Phoenix.Controller, unquote(phoenix_opts)
       use Spectral
+
+      @doc false
+      def __phoenix_spectral_on_invalid_request__, do: unquote(on_invalid_request)
 
       @before_compile PhoenixSpectral.Controller
     end
@@ -166,13 +197,25 @@ defmodule PhoenixSpectral.Controller do
       end
     else
       {:error, errors} ->
-        body =
-          Phoenix.json_library().encode!(%{error: "Bad Request", details: format_errors(errors)})
-
-        conn
-        |> Plug.Conn.put_resp_content_type("application/json")
-        |> Plug.Conn.send_resp(400, body)
+        render_invalid_request(conn, controller, errors)
     end
+  end
+
+  defp render_invalid_request(conn, controller, errors) do
+    case controller.__phoenix_spectral_on_invalid_request__() do
+      nil -> default_invalid_request(conn, errors)
+      fun when is_function(fun, 2) -> fun.(conn, errors)
+      {module, function} -> apply(module, function, [conn, errors])
+    end
+  end
+
+  defp default_invalid_request(conn, errors) do
+    body =
+      Phoenix.json_library().encode!(%{error: "Bad Request", details: format_errors(errors)})
+
+    conn
+    |> Plug.Conn.put_resp_content_type("application/json")
+    |> Plug.Conn.send_resp(400, body)
   end
 
   defp decode_request_body(conn, type_info, body_type) do
@@ -367,11 +410,21 @@ defmodule PhoenixSpectral.Controller do
   end
 
   defp format_errors(errors) when is_list(errors) do
-    Enum.map(errors, fn %Spectral.Error{location: location, type: type} ->
-      %{
-        type: type,
-        location: Enum.map(location, &to_string/1)
-      }
-    end)
+    Enum.map(errors, &format_error/1)
+  end
+
+  defp format_error(%Spectral.Error{location: location, type: type, context: context} = error) do
+    detail = %{
+      type: type,
+      location: Enum.map(location, &to_string/1),
+      message: Exception.message(error)
+    }
+
+    # The raw context carries internal spectra type records that are not JSON-safe,
+    # so only the offending user value (decoded from the request) is surfaced.
+    case context do
+      %{value: value} -> Map.put(detail, :got, value)
+      _ -> detail
+    end
   end
 end

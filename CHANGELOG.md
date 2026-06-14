@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- `:on_invalid_request` option on `use PhoenixSpectral.Controller` — a 2-arity function or `{module, function}` tuple, called with `(conn, [%Spectral.Error{}])` when request validation fails, returning a `Plug.Conn`. Lets applications render validation failures into their own error envelope and status code instead of the built-in `400`.
+
+### Changed
+
+- The default `400 Bad Request` body now enriches each `details` entry with a human-readable `message` (e.g. `"no_match at currency"`) and `got` (the offending request value, when available), alongside the existing `type` and `location`.
+
 ## [0.5.2] - 2026-06-12
 
 ### Added

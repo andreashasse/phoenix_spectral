@@ -359,4 +359,71 @@ defmodule PhoenixSpectral.ControllerTest do
       assert conn.status == 400
     end
   end
+
+  describe "PhoenixSpectral.Controller invalid request body detail enrichment" do
+    test "each detail carries a human-readable message" do
+      conn = dispatch(:post, "/users", %{"name" => 123, "email" => "test@example.com"})
+
+      assert conn.status == 400
+      body = Jason.decode!(conn.resp_body)
+
+      assert [%{"type" => "type_mismatch", "location" => ["name"], "message" => message}] =
+               body["details"]
+
+      assert message == "type_mismatch at name"
+    end
+
+    test "detail surfaces the offending value as got" do
+      conn = dispatch(:post, "/users", %{"name" => 123, "email" => "test@example.com"})
+
+      body = Jason.decode!(conn.resp_body)
+      assert [%{"got" => 123}] = body["details"]
+    end
+
+    test "a missing required header omits got (no value context) but carries a message" do
+      conn = dispatch_header(:show, %{"id" => "1"}, [])
+
+      body = Jason.decode!(conn.resp_body)
+      assert [detail] = body["details"]
+      assert detail["type"] == "missing_data"
+      assert detail["message"] == "missing_data at x-user-id"
+      refute Map.has_key?(detail, "got")
+    end
+  end
+
+  describe "PhoenixSpectral.Controller with :on_invalid_request renderer" do
+    test "MFA renderer controls the error envelope and status code" do
+      conn =
+        call(TestInvalidRequestController, :create, :post, "/", %{"name" => 123}, %{}, %{}, [])
+
+      assert conn.status == 422
+      body = Jason.decode!(conn.resp_body)
+      assert body["code"] == "validation_failed"
+      assert body["fields"] == [["name"]]
+    end
+
+    test "MFA renderer is bypassed on a valid request" do
+      conn =
+        call(
+          TestInvalidRequestController,
+          :create,
+          :post,
+          "/",
+          %{"name" => "Alice", "email" => "a@example.com"},
+          %{},
+          %{},
+          []
+        )
+
+      assert conn.status == 201
+    end
+
+    test "captured-function renderer is invoked" do
+      conn =
+        call(TestInvalidRequestFunController, :create, :post, "/", %{"name" => 123}, %{}, %{}, [])
+
+      assert conn.status == 418
+      assert Jason.decode!(conn.resp_body)["code"] == "nope"
+    end
+  end
 end
