@@ -11,7 +11,7 @@ Add `phoenix_spectral` to your dependencies in `mix.exs`:
 ```elixir
 def deps do
   [
-    {:phoenix_spectral, "~> 0.6.0"}
+    {:phoenix_spectral, "~> 0.6.1"}
   ]
 end
 ```
