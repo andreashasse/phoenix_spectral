@@ -2,7 +2,7 @@
 
 PhoenixSpectral integrates [Spectral](https://hexdocs.pm/spectral) with Phoenix, making controller typespecs the single source of truth for OpenAPI 3.1 spec generation and request/response validation. Define your types once — PhoenixSpectral derives the API docs and enforces them at runtime.
 
-> **Most of the power lives in Spectral.** PhoenixSpectral is a thin Phoenix adapter; the type system that shapes and validates your requests and responses is [Spectral](https://hexdocs.pm/spectral). Features like string/length/pattern constraints, camelCase field aliases, custom codecs, and the built-in date/time codecs are configured on your *types* via Spectral, not here. Read the [Spectral docs](https://hexdocs.pm/spectral) and the [Going further with Spectral](#going-further-with-spectral) section below before assuming a capability is missing. AI agents (and the humans guiding them) should start from [AGENTS.md](AGENTS.md), which maps "I want to…" tasks to the Spectral feature that does them.
+> **Most of the power lives in Spectral.** PhoenixSpectral is a thin Phoenix adapter; the type system that shapes and validates your requests and responses is [Spectral](https://hexdocs.pm/spectral). Features like string/length/pattern constraints, camelCase field aliases, custom codecs, and the built-in date/time codecs are configured on your *types* via Spectral, not here. Read the [Spectral docs](https://hexdocs.pm/spectral) and the [Going further with Spectral](#going-further-with-spectral) section below before assuming a capability is missing.
 
 ## Installation
 
@@ -312,7 +312,6 @@ PhoenixSpectral only wires Phoenix to Spectral — it adds no validation or sche
 | Accept an enum from a path/query param (e.g. `?role=admin`) | an atom-union type `:: :admin \| :user`, decoded via the `binary_string` format | [Data Serialization API](https://hexdocs.pm/spectral/readme.html#data-serialization-api) |
 | Serialize `DateTime`, `Date`, or `MapSet` | the built-in codecs (registered automatically) | [Built-in Codecs](https://hexdocs.pm/spectral/readme.html#built-in-codecs) |
 | Encode/decode a domain type with custom rules (prefixed IDs, money, etc.) | `use Spectral.Codec` | [Custom Codecs](https://hexdocs.pm/spectral/readme.html#custom-codecs) |
-| Reuse one codec across types with different config | `spectral type_parameters: …` read as the codec's `params` argument | [Codec-specific configuration](https://hexdocs.pm/spectral/readme.html#codec-specific-configuration) |
 | Add `title`, `description`, or example payloads to a schema | `spectral title:`, `description:`, `examples_function:` | [Documenting Types with `spectral`](https://hexdocs.pm/spectral/readme.html#documenting-types-with-spectral) |
 | Annotate a path/header/query parameter's description | a named type alias with `spectral description: …` | [Parameter descriptions](#parameter-descriptions) (above) |
 
