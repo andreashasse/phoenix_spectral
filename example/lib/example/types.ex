@@ -85,6 +85,10 @@ defmodule Example.Types do
     # the request body — a missing email field decodes as nil rather than an error.
     defstruct [:name, email: nil]
 
+    # type_parameters enforces length constraints (no codec) and emits them into the schema.
+    spectral(type_parameters: %{min_length: 2, max_length: 50})
+    @type name :: String.t()
+
     spectral(
       title: "UserInput",
       description: "Input for creating or updating a user. email is optional.",
@@ -92,7 +96,7 @@ defmodule Example.Types do
     )
 
     @type t :: %UserInput{
-            name: String.t(),
+            name: name(),
             email: String.t() | nil
           }
 

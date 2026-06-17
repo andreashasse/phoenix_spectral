@@ -5,6 +5,11 @@ defmodule PhoenixSpectral do
   Controllers that `use PhoenixSpectral.Controller` and define typespecs on their
   action functions become the single source of truth for OpenAPI documentation.
 
+  The schema for each request and response is derived from your types by `Spectral`.
+  Schema details — descriptions, examples, string constraints, field aliases, custom
+  codecs — are declared on the types via Spectral's `spectral/1` macro; see the
+  [Spectral docs](https://hexdocs.pm/spectral).
+
   ## Usage
 
       {:ok, spec} = PhoenixSpectral.generate_openapi(MyAppWeb.Router, %{title: "My API", version: "1.0.0"})

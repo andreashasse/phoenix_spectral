@@ -4,7 +4,7 @@ defmodule PhoenixSpectral.MixProject do
   def project do
     [
       app: :phoenix_spectral,
-      version: "0.6.0",
+      version: "0.6.1",
       elixir: ">= 1.18.0",
       start_permanent: Mix.env() == :prod,
       elixirc_paths: elixirc_paths(Mix.env()),
@@ -23,7 +23,10 @@ defmodule PhoenixSpectral.MixProject do
   defp package do
     [
       licenses: ["Apache-2.0"],
-      links: %{"GitHub" => "https://github.com/andreashasse/phoenix_spectral"}
+      links: %{
+        "GitHub" => "https://github.com/andreashasse/phoenix_spectral",
+        "Spectral" => "https://hexdocs.pm/spectral"
+      }
     ]
   end
 

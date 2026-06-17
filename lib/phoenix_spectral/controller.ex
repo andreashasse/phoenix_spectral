@@ -7,6 +7,10 @@ defmodule PhoenixSpectral.Controller do
   Phoenix `(conn, params)`. Request data is decoded and validated against your typespecs,
   and responses are encoded automatically.
 
+  Decoding, validation, and encoding are performed by `Spectral` from the types in
+  your `@spec`. See the [Spectral docs](https://hexdocs.pm/spectral) for how to shape
+  a type (optional fields, string constraints, field aliases, custom codecs).
+
   ## Usage
 
       defmodule MyAppWeb.UserController do

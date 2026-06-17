@@ -73,6 +73,15 @@ defmodule ExampleTest do
 
       assert conn.status == 201
     end
+
+    test "returns 400 when name is shorter than the min_length constraint" do
+      conn =
+        build_conn()
+        |> authed()
+        |> post("/users", Jason.encode!(%{name: "A"}))
+
+      assert conn.status == 400
+    end
   end
 
   describe "Bearer auth on write endpoints" do

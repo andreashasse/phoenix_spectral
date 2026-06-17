@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.1] - 2026-06-17
+
+### Changed
+
+- Documentation now surfaces Spectral's type features directly: a "Going further with Spectral" reference table in the README (string/length/pattern constraints, field aliases, `only`, struct defaults, enums, built-in and custom codecs), hexdocs links throughout, and "powered by Spectral" pointers in the module docs. The example app gained a `type_parameters` string-constraint demonstration with a test.
+
 ## [0.6.0] - 2026-06-14
 
 ### Added
