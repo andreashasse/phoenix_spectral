@@ -85,6 +85,13 @@ defmodule Example.Types do
     # the request body — a missing email field decodes as nil rather than an error.
     defstruct [:name, email: nil]
 
+    # A named type with `type_parameters` string constraints. No custom codec is
+    # needed: Spectral enforces min/max length (and `pattern`, `format`) on both
+    # decode and encode, and emits minLength/maxLength into the OpenAPI schema.
+    # A name shorter than 2 or longer than 50 characters fails with a 400.
+    spectral(type_parameters: %{min_length: 2, max_length: 50})
+    @type name :: String.t()
+
     spectral(
       title: "UserInput",
       description: "Input for creating or updating a user. email is optional.",
@@ -92,7 +99,7 @@ defmodule Example.Types do
     )
 
     @type t :: %UserInput{
-            name: String.t(),
+            name: name(),
             email: String.t() | nil
           }
 

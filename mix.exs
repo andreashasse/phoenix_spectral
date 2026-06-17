@@ -15,7 +15,7 @@ defmodule PhoenixSpectral.MixProject do
       source_url: "https://github.com/andreashasse/phoenix_spectral",
       docs: [
         main: "readme",
-        extras: ["README.md", "CHANGELOG.md"]
+        extras: ["README.md", "AGENTS.md", "CHANGELOG.md"]
       ]
     ]
   end
@@ -23,7 +23,11 @@ defmodule PhoenixSpectral.MixProject do
   defp package do
     [
       licenses: ["Apache-2.0"],
-      links: %{"GitHub" => "https://github.com/andreashasse/phoenix_spectral"}
+      files: ~w(lib .formatter.exs mix.exs README.md AGENTS.md CHANGELOG.md),
+      links: %{
+        "GitHub" => "https://github.com/andreashasse/phoenix_spectral",
+        "Spectral" => "https://hexdocs.pm/spectral"
+      }
     ]
   end
 
