@@ -8,7 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
-- OpenAPI 3.1 webhooks. `PhoenixSpectral.generate_openapi/4` takes a list of webhook declarations alongside the router, and `PhoenixSpectral.OpenAPIController` accepts them as a `:webhooks` option. They are emitted under the spec's top-level [`webhooks`](https://spec.openapis.org/oas/v3.1.0#oasWebhooks) key, keyed by event name, and their payload types share `components/schemas` with the routes. Webhooks describe requests your API sends out, so they have no route in the router and are declared explicitly: each entry is a map of `:name`, `:method`, `:module` and `:payload`, plus optional `:responses` and `:doc`. A malformed entry raises rather than producing a broken spec. `generate_openapi/2,3` are unchanged and emit no `webhooks` key.
+- OpenAPI 3.1 webhooks. `PhoenixSpectral.generate_openapi/3` accepts a `:webhooks` option, as does `PhoenixSpectral.OpenAPIController`. They are emitted under the spec's top-level [`webhooks`](https://spec.openapis.org/oas/v3.1.0#oasWebhooks) key, keyed by event name, and their payload types share `components/schemas` with the routes. Webhooks describe requests your API sends out, so they have no route in the router and are declared explicitly: each entry is a map of `:name`, `:method`, `:module` and `:payload`, plus optional `:responses` and `:doc`. A malformed entry raises rather than producing a broken spec, as does an unrecognized option — Spectra ignores option keys it does not know, so a typo would otherwise drop every webhook silently. A spec generated without the option is unchanged and emits no `webhooks` key.
 
 ## [0.6.1] - 2026-06-17
 

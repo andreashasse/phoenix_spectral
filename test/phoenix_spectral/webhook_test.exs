@@ -22,11 +22,11 @@ defmodule PhoenixSpectral.WebhookTest do
   end
 
   defp generate(webhooks) do
-    {:ok, json} = PhoenixSpectral.generate_openapi(TestRouter, @metadata, webhooks, [])
+    {:ok, json} = PhoenixSpectral.generate_openapi(TestRouter, @metadata, webhooks: webhooks)
     Jason.decode!(json)
   end
 
-  describe "generate_openapi/4" do
+  describe "generate_openapi/3 with :webhooks" do
     test "emits a webhook at the top level" do
       spec =
         generate([
@@ -106,6 +106,38 @@ defmodule PhoenixSpectral.WebhookTest do
       assert_raise FunctionClauseError, fn ->
         generate([%{method: :post, module: TestUser, payload: {:type, :t, 0}}])
       end
+    end
+
+    test "coexists with encode options, in either order" do
+      webhooks = [
+        %{name: "userCreated", method: :post, module: TestUser, payload: {:type, :t, 0}}
+      ]
+
+      for opts <- [[:pre_encoded, webhooks: webhooks], [{:webhooks, webhooks}, :pre_encoded]] do
+        {:ok, spec} = PhoenixSpectral.generate_openapi(TestRouter, @metadata, opts)
+
+        assert is_map(spec)
+        assert Map.has_key?(spec, "webhooks")
+      end
+    end
+
+    test "raises on an unrecognized option instead of silently dropping it" do
+      # spectra reads options with proplists:get_value/3, which ignores unknown
+      # keys - so a typo would silently drop every webhook without this check.
+      assert_raise ArgumentError, ~r/webhook/, fn ->
+        PhoenixSpectral.generate_openapi(TestRouter, @metadata,
+          webhook: [
+            %{name: "userCreated", method: :post, module: TestUser, payload: {:type, :t, 0}}
+          ]
+        )
+      end
+    end
+
+    test "still accepts a bare encode-option list" do
+      {:ok, spec} = PhoenixSpectral.generate_openapi(TestRouter, @metadata, [:pre_encoded])
+
+      assert is_map(spec)
+      refute Map.has_key?(spec, "webhooks")
     end
   end
 

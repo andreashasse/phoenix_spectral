@@ -163,7 +163,7 @@ end
 
 ## Webhooks
 
-OpenAPI 3.1 [webhooks](https://spec.openapis.org/oas/v3.1.0#oasWebhooks) describe requests your API *sends out*, rather than requests it receives. They have no route in the router, so they are declared explicitly — either as the `:webhooks` option on `PhoenixSpectral.OpenAPIController`, or as the third argument to `PhoenixSpectral.generate_openapi/4`.
+OpenAPI 3.1 [webhooks](https://spec.openapis.org/oas/v3.1.0#oasWebhooks) describe requests your API *sends out*, rather than requests it receives. They have no route in the router, so they are declared explicitly — as the `:webhooks` option, either on `PhoenixSpectral.OpenAPIController` or on `PhoenixSpectral.generate_openapi/3`.
 
 A webhook is keyed by an **event name** instead of a URL path, because the consumer owns the URL your API calls. The direction is inverted relative to a route: the payload is what your API *sends*, and the responses describe what the consumer is expected to *return*.
 
@@ -197,7 +197,13 @@ Each entry is a map:
 | `:responses` | no | List of `{status_code, description}` tuples. Defaults to none — OpenAPI 3.1 does not require responses |
 | `:doc` | no | Operation documentation map: `:summary`, `:description`, `:operationId`, `:tags`, `:deprecated`, `:externalDocs` |
 
-A malformed entry raises rather than producing a broken spec, consistent with the crash-on-bad-code convention.
+Or directly:
+
+```elixir
+PhoenixSpectral.generate_openapi(MyAppWeb.Router, metadata, webhooks: webhooks)
+```
+
+A malformed entry raises rather than producing a broken spec, consistent with the crash-on-bad-code convention. So does an unrecognized option: Spectra ignores option keys it does not know, so a typo like `webhook:` would otherwise drop every webhook from the spec in silence.
 
 Notes:
 

@@ -88,25 +88,29 @@ defmodule PhoenixSpectral do
     generate_openapi(router, metadata, [])
   end
 
-  @spec generate_openapi(module(), map(), [:pre_encoded]) ::
-          {:ok, iodata() | map()} | {:error, list()}
-  def generate_openapi(router, metadata, options) do
-    generate_openapi(router, metadata, [], options)
-  end
-
   @doc """
-  Generates an OpenAPI 3.1 specification from a Phoenix router and a list of webhooks.
+  Generates an OpenAPI 3.1 specification, with options.
+
+  ## Options
+
+  - `:webhooks` — list of webhook declarations, emitted under the spec's top-level
+    [`webhooks`](https://spec.openapis.org/oas/v3.1.0#oasWebhooks) key (see below)
+  - `:pre_encoded` — return a map instead of iodata, skipping JSON encoding
+
+  Anything else raises. Options are otherwise passed through to Spectra, which
+  ignores keys it does not recognize, so an unrecognized key here would silently
+  drop whatever it was meant to configure.
+
+  ## Webhooks
 
   Webhooks describe requests your API *sends out*, rather than requests it
-  receives, so they have no route in the router and are declared explicitly here.
-  They are emitted under the spec's top-level
-  [`webhooks`](https://spec.openapis.org/oas/v3.1.0#oasWebhooks) key, keyed by
-  event name, and their payload types share `components/schemas` with the routes.
+  receives. They have no route in the router, so they are declared explicitly.
+  Their payload types share `components/schemas` with the routes.
 
-  The direction is inverted relative to a route: the payload is what your API
-  *sends*, and the responses describe what the consumer is expected to *return*.
-
-  ## Webhook entries
+  A webhook is keyed by an event name instead of a URL path, because the consumer
+  owns the URL your API calls. The direction is inverted relative to a route: the
+  payload is what your API *sends*, and the responses describe what the consumer
+  is expected to *return*.
 
   Each entry is a map:
 
@@ -121,21 +125,24 @@ defmodule PhoenixSpectral do
 
   ## Example
 
-      PhoenixSpectral.generate_openapi(MyAppWeb.Router, metadata, [
-        %{
-          name: "userCreated",
-          method: :post,
-          module: MyApp.Events,
-          payload: {:type, :user_created, 0},
-          responses: [{200, "Acknowledged"}],
-          doc: %{summary: "Sent when a user is created"}
-        }
-      ], [])
+      PhoenixSpectral.generate_openapi(MyAppWeb.Router, metadata,
+        webhooks: [
+          %{
+            name: "userCreated",
+            method: :post,
+            module: MyApp.Events,
+            payload: {:type, :user_created, 0},
+            responses: [{200, "Acknowledged"}],
+            doc: %{summary: "Sent when a user is created"}
+          }
+        ]
+      )
   """
-  @spec generate_openapi(module(), map(), [map()], [:pre_encoded]) ::
+  @spec generate_openapi(module(), map(), keyword() | [:pre_encoded]) ::
           {:ok, iodata() | map()} | {:error, list()}
-  def generate_openapi(router, metadata, webhooks, options)
-      when is_list(webhooks) and is_list(options) do
+  def generate_openapi(router, metadata, options) when is_list(options) do
+    {webhooks, encode_options} = split_options(options)
+
     endpoints =
       router
       |> Phoenix.Router.routes()
@@ -146,9 +153,37 @@ defmodule PhoenixSpectral do
       metadata,
       endpoints,
       Enum.map(webhooks, &to_webhook/1),
-      options
+      encode_options
     )
   end
+
+  # Spectra reads options with proplists:get_value/3, which ignores keys it does
+  # not know. Carrying :webhooks in that same list would therefore turn a typo
+  # into every webhook silently vanishing from the spec, so anything
+  # unrecognized raises here instead.
+  #
+  # Keyword functions cannot be used to split the list: it legitimately mixes
+  # bare atoms (:pre_encoded) with tuples, and Keyword.pop/2 raises on that.
+  defp split_options(options) do
+    {webhook_opts, rest} = Enum.split_with(options, &match?({:webhooks, _}, &1))
+
+    case Enum.reject(rest, &encode_option?/1) do
+      [] ->
+        :ok
+
+      unknown ->
+        raise ArgumentError,
+              "unrecognized option(s) #{inspect(unknown)} passed to " <>
+                "PhoenixSpectral.generate_openapi/3. Supported options are " <>
+                ":webhooks and :pre_encoded."
+    end
+
+    {Enum.flat_map(webhook_opts, fn {:webhooks, webhooks} -> webhooks end), rest}
+  end
+
+  defp encode_option?(:pre_encoded), do: true
+  defp encode_option?({:pre_encoded, value}) when is_boolean(value), do: true
+  defp encode_option?(_other), do: false
 
   defp to_webhook(%{name: name, method: method, module: module, payload: payload} = webhook) do
     Spectral.OpenAPI.webhook(name, method, Map.get(webhook, :doc, %{}))
