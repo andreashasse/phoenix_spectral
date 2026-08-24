@@ -41,7 +41,7 @@ defmodule PhoenixSpectral.OpenAPIController do
   - `:cache` — when `true`, the generated JSON is stored in `:persistent_term` after the first
     request and served from there on subsequent requests (default: `false`)
   - `:webhooks` — list of webhook declarations emitted under the spec's top-level `webhooks`
-    key. See `PhoenixSpectral.generate_openapi/4` for the entry shape.
+    key. See `PhoenixSpectral.generate_openapi/3` for the entry shape.
   """
 
   @metadata_keys [
@@ -81,8 +81,7 @@ defmodule PhoenixSpectral.OpenAPIController do
               PhoenixSpectral.generate_openapi(
                 unquote(router),
                 %{unquote_splicing(metadata_kv)},
-                unquote(webhooks),
-                []
+                webhooks: unquote(webhooks)
               )
 
             IO.iodata_to_binary(iodata)
@@ -119,7 +118,7 @@ defmodule PhoenixSpectral.OpenAPIController do
 
     case :persistent_term.get(key, :not_cached) do
       :not_cached ->
-        {:ok, iodata} = PhoenixSpectral.generate_openapi(router, metadata, webhooks, [])
+        {:ok, iodata} = PhoenixSpectral.generate_openapi(router, metadata, webhooks: webhooks)
         json = IO.iodata_to_binary(iodata)
         :persistent_term.put(key, json)
         json
