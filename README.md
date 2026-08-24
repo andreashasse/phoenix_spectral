@@ -159,6 +159,52 @@ end
 | `:security` | no | List of [Security Requirement Objects](https://spec.openapis.org/oas/v3.1.0#security-requirement-object) applied as the global default to every operation, e.g. `[%{"api_key" => []}]`. Each key should name a scheme from `:security_schemes` (the list holds required scopes, empty for apiKey/http). Passed through to the spec as-is — not validated by PhoenixSpectral |
 | `:openapi_url` | no | URL path for the JSON spec, used by Swagger UI. Defaults to the path of this controller's `:show` route as declared in the router (scope prefixes included). Set explicitly to use a different path. |
 | `:cache` | no | Cache the generated JSON in `:persistent_term` (default: `false`) |
+| `:webhooks` | no | List of webhook declarations, emitted under the spec's top-level `webhooks` key. See [Webhooks](#webhooks) below |
+
+## Webhooks
+
+OpenAPI 3.1 [webhooks](https://spec.openapis.org/oas/v3.1.0#oasWebhooks) describe requests your API *sends out*, rather than requests it receives. They have no route in the router, so they are declared explicitly — either as the `:webhooks` option on `PhoenixSpectral.OpenAPIController`, or as the third argument to `PhoenixSpectral.generate_openapi/4`.
+
+A webhook is keyed by an **event name** instead of a URL path, because the consumer owns the URL your API calls. The direction is inverted relative to a route: the payload is what your API *sends*, and the responses describe what the consumer is expected to *return*.
+
+```elixir
+defmodule MyAppWeb.OpenAPIController do
+  use PhoenixSpectral.OpenAPIController,
+    router: MyAppWeb.Router,
+    title: "My API",
+    version: "1.0.0",
+    webhooks: [
+      %{
+        name: "userCreated",
+        method: :post,
+        module: MyApp.Events,
+        payload: {:type, :user_created, 0},
+        responses: [{200, "Acknowledged"}],
+        doc: %{summary: "Sent when a user is created"}
+      }
+    ]
+end
+```
+
+Each entry is a map:
+
+| Key | Required | Description |
+|-----|----------|-------------|
+| `:name` | yes | Event name the webhook is keyed by, e.g. `"userCreated"` |
+| `:method` | yes | HTTP method your API uses when calling the consumer, usually `:post` |
+| `:module` | yes | Module owning the payload type |
+| `:payload` | yes | Payload type reference, e.g. `{:type, :t, 0}` |
+| `:responses` | no | List of `{status_code, description}` tuples. Defaults to none — OpenAPI 3.1 does not require responses |
+| `:doc` | no | Operation documentation map: `:summary`, `:description`, `:operationId`, `:tags`, `:deprecated`, `:externalDocs` |
+
+A malformed entry raises rather than producing a broken spec, consistent with the crash-on-bad-code convention.
+
+Notes:
+
+- Payload types share `components/schemas` with your routes, so a type used by both is emitted once.
+- One event name can carry several methods; a webhook value is a Path Item Object, exactly like a `paths` entry.
+- Header parameters (an `X-Signature` on the outgoing request, say) are not exposed through the declarative entry yet. Build the webhook with `Spectral.OpenAPI` directly if you need them.
+- A global `:security` requirement is emitted at the top level and therefore applies to webhook operations too, even though its meaning is inverted there — it would describe your API authenticating *to* the consumer. Per-operation security is not supported yet.
 
 ## Streaming and raw responses
 

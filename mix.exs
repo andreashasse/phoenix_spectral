@@ -44,8 +44,15 @@ defmodule PhoenixSpectral.MixProject do
   defp deps do
     [
       {:phoenix, "~> 1.7"},
-      {:spectral, "~> 0.13.0"},
-      {:spectra, "~> 0.13.2"},
+      # TODO: revert both to hex versions once webhook support is released.
+      {:spectral,
+       github: "andreashasse/spectral",
+       branch: "claude/openapi-webhook-support-sz755w",
+       override: true},
+      {:spectra,
+       github: "andreashasse/spectra",
+       branch: "claude/openapi-webhook-support-sz755w",
+       override: true},
       {:jason, "~> 1.0", only: [:dev, :test]},
       {:ex_doc, ">= 0.0.0", only: :dev, runtime: false},
       {:credo, "~> 1.7", only: [:dev, :test], runtime: false},

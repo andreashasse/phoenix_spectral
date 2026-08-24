@@ -40,6 +40,8 @@ defmodule PhoenixSpectral.OpenAPIController do
     included). Set explicitly to use a different path.
   - `:cache` — when `true`, the generated JSON is stored in `:persistent_term` after the first
     request and served from there on subsequent requests (default: `false`)
+  - `:webhooks` — list of webhook declarations emitted under the spec's top-level `webhooks`
+    key. See `PhoenixSpectral.generate_openapi/4` for the entry shape.
   """
 
   @metadata_keys [
@@ -59,6 +61,7 @@ defmodule PhoenixSpectral.OpenAPIController do
     router = Keyword.fetch!(opts, :router)
     openapi_url = Keyword.get(opts, :openapi_url)
     cache = Keyword.get(opts, :cache, false)
+    webhooks = Keyword.get(opts, :webhooks, [])
     metadata_kv = Keyword.take(opts, @metadata_keys)
 
     quote do
@@ -70,11 +73,17 @@ defmodule PhoenixSpectral.OpenAPIController do
             PhoenixSpectral.OpenAPIController.fetch_json(
               __MODULE__,
               unquote(router),
-              %{unquote_splicing(metadata_kv)}
+              %{unquote_splicing(metadata_kv)},
+              unquote(webhooks)
             )
           else
             {:ok, iodata} =
-              PhoenixSpectral.generate_openapi(unquote(router), %{unquote_splicing(metadata_kv)})
+              PhoenixSpectral.generate_openapi(
+                unquote(router),
+                %{unquote_splicing(metadata_kv)},
+                unquote(webhooks),
+                []
+              )
 
             IO.iodata_to_binary(iodata)
           end
@@ -105,12 +114,12 @@ defmodule PhoenixSpectral.OpenAPIController do
   end
 
   @doc false
-  def fetch_json(controller, router, metadata) do
+  def fetch_json(controller, router, metadata, webhooks \\ []) do
     key = {__MODULE__, controller}
 
     case :persistent_term.get(key, :not_cached) do
       :not_cached ->
-        {:ok, iodata} = PhoenixSpectral.generate_openapi(router, metadata)
+        {:ok, iodata} = PhoenixSpectral.generate_openapi(router, metadata, webhooks, [])
         json = IO.iodata_to_binary(iodata)
         :persistent_term.put(key, json)
         json

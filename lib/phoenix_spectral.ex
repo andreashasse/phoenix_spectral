@@ -91,13 +91,75 @@ defmodule PhoenixSpectral do
   @spec generate_openapi(module(), map(), [:pre_encoded]) ::
           {:ok, iodata() | map()} | {:error, list()}
   def generate_openapi(router, metadata, options) do
+    generate_openapi(router, metadata, [], options)
+  end
+
+  @doc """
+  Generates an OpenAPI 3.1 specification from a Phoenix router and a list of webhooks.
+
+  Webhooks describe requests your API *sends out*, rather than requests it
+  receives, so they have no route in the router and are declared explicitly here.
+  They are emitted under the spec's top-level
+  [`webhooks`](https://spec.openapis.org/oas/v3.1.0#oasWebhooks) key, keyed by
+  event name, and their payload types share `components/schemas` with the routes.
+
+  The direction is inverted relative to a route: the payload is what your API
+  *sends*, and the responses describe what the consumer is expected to *return*.
+
+  ## Webhook entries
+
+  Each entry is a map:
+
+  - `:name` — event name the webhook is keyed by (required, e.g. `"userCreated"`)
+  - `:method` — HTTP method your API uses when calling the consumer (required, usually `:post`)
+  - `:module` — module owning the payload type (required)
+  - `:payload` — the payload type reference (required, e.g. `{:type, :t, 0}`)
+  - `:responses` — list of `{status_code, description}` tuples (optional, defaults to none)
+  - `:doc` — operation documentation map, as for `Spectral.OpenAPI.endpoint/3` (optional)
+
+  A malformed entry raises rather than producing a broken spec.
+
+  ## Example
+
+      PhoenixSpectral.generate_openapi(MyAppWeb.Router, metadata, [
+        %{
+          name: "userCreated",
+          method: :post,
+          module: MyApp.Events,
+          payload: {:type, :user_created, 0},
+          responses: [{200, "Acknowledged"}],
+          doc: %{summary: "Sent when a user is created"}
+        }
+      ], [])
+  """
+  @spec generate_openapi(module(), map(), [map()], [:pre_encoded]) ::
+          {:ok, iodata() | map()} | {:error, list()}
+  def generate_openapi(router, metadata, webhooks, options)
+      when is_list(webhooks) and is_list(options) do
     endpoints =
       router
       |> Phoenix.Router.routes()
       |> Enum.filter(&api_route?/1)
       |> Enum.map(&route_to_endpoint/1)
 
-    :spectra_openapi.endpoints_to_openapi(metadata, endpoints, options)
+    :spectra_openapi.to_openapi(
+      metadata,
+      endpoints,
+      Enum.map(webhooks, &to_webhook/1),
+      options
+    )
+  end
+
+  defp to_webhook(%{name: name, method: method, module: module, payload: payload} = webhook) do
+    Spectral.OpenAPI.webhook(name, method, Map.get(webhook, :doc, %{}))
+    |> Spectral.OpenAPI.with_request_body(module, payload)
+    |> add_webhook_responses(Map.get(webhook, :responses, []))
+  end
+
+  defp add_webhook_responses(webhook, responses) do
+    Enum.reduce(responses, webhook, fn {status, description}, acc ->
+      Spectral.OpenAPI.add_response(acc, Spectral.OpenAPI.response(status, description))
+    end)
   end
 
   defp api_route?(%{plug: plug}) do
