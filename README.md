@@ -195,7 +195,7 @@ Each entry is a map:
 | `:module` | yes | Module owning the payload type |
 | `:payload` | yes | Payload type reference, e.g. `{:type, :t, 0}` |
 | `:responses` | no | List of `{status_code, description}` tuples. Defaults to none — OpenAPI 3.1 does not require responses |
-| `:doc` | no | Operation documentation map: `:summary`, `:description`, `:operationId`, `:tags`, `:deprecated`, `:externalDocs` |
+| `:doc` | no | Operation documentation map: `:summary`, `:description`, `:operationId`, `:tags`, `:deprecated`, `:externalDocs`, `:security` |
 
 Or directly:
 
@@ -210,7 +210,30 @@ Notes:
 - Payload types share `components/schemas` with your routes, so a type used by both is emitted once.
 - One event name can carry several methods; a webhook value is a Path Item Object, exactly like a `paths` entry.
 - Header parameters (an `X-Signature` on the outgoing request, say) are not exposed through the declarative entry yet. Build the webhook with `Spectral.OpenAPI` directly if you need them.
-- A global `:security` requirement is emitted at the top level and therefore applies to webhook operations too, even though its meaning is inverted there — it would describe your API authenticating *to* the consumer. Per-operation security is not supported yet.
+- A global `:security` requirement is emitted at the top level and therefore applies to webhook operations too, per OpenAPI — even though its meaning is inverted there, since it would describe your API authenticating *to* the consumer. Give the webhook its own `:security` inside `:doc` to override that, or `[]` to opt out entirely. This is how an API authenticates inbound calls one way and signs its outgoing webhooks another:
+
+```elixir
+use PhoenixSpectral.OpenAPIController,
+  router: MyAppWeb.Router,
+  title: "My API",
+  version: "1.0.0",
+  security_schemes: %{
+    "bearer_auth" => %{type: "http", scheme: "bearer"},
+    "webhook_signature" => %{type: "apiKey", in: "header", name: "x-signature"}
+  },
+  security: [%{"bearer_auth" => []}],
+  webhooks: [
+    %{
+      name: "userCreated",
+      method: :post,
+      module: MyApp.Events,
+      payload: {:type, :user_created, 0},
+      doc: %{security: [%{"webhook_signature" => []}]}
+    }
+  ]
+```
+
+Note that route-based endpoints cannot set their own `:security` this way — their operation docs come from the controller's `spectral` annotation, which only carries `summary`, `description` and `deprecated`. Endpoints therefore use the global requirement.
 
 ## Streaming and raw responses
 

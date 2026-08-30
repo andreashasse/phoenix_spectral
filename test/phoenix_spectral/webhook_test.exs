@@ -141,6 +141,69 @@ defmodule PhoenixSpectral.WebhookTest do
     end
   end
 
+  describe "per-webhook security" do
+    @security_metadata %{
+      title: "Test API",
+      version: "1.0.0",
+      security_schemes: %{
+        "bearer_auth" => %{type: "http", scheme: "bearer"},
+        "webhook_signature" => %{type: "apiKey", in: "header", name: "x-signature"}
+      },
+      security: [%{"bearer_auth" => []}]
+    }
+
+    defp generate_with_security(webhooks) do
+      {:ok, json} =
+        PhoenixSpectral.generate_openapi(TestRouter, @security_metadata, webhooks: webhooks)
+
+      Jason.decode!(json)
+    end
+
+    test "a webhook declares its own auth while the API keeps the global default" do
+      spec =
+        generate_with_security([
+          %{
+            name: "userCreated",
+            method: :post,
+            module: TestUser,
+            payload: {:type, :t, 0},
+            doc: %{security: [%{"webhook_signature" => []}]}
+          }
+        ])
+
+      assert spec["security"] == [%{"bearer_auth" => []}]
+
+      assert spec["webhooks"]["userCreated"]["post"]["security"] == [
+               %{"webhook_signature" => []}
+             ]
+    end
+
+    test "an empty list opts a webhook out of the global requirement" do
+      spec =
+        generate_with_security([
+          %{
+            name: "userCreated",
+            method: :post,
+            module: TestUser,
+            payload: {:type, :t, 0},
+            doc: %{security: []}
+          }
+        ])
+
+      assert spec["webhooks"]["userCreated"]["post"]["security"] == []
+    end
+
+    test "a webhook without its own security inherits the global default" do
+      spec =
+        generate_with_security([
+          %{name: "userCreated", method: :post, module: TestUser, payload: {:type, :t, 0}}
+        ])
+
+      refute Map.has_key?(spec["webhooks"]["userCreated"]["post"], "security")
+      assert spec["security"] == [%{"bearer_auth" => []}]
+    end
+  end
+
   describe "OpenAPIController :webhooks option" do
     test "serves webhooks declared on the controller" do
       conn = TestWebhookOpenAPIController.show(conn(:get, "/openapi"), %{})

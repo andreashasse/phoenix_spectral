@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Per-webhook OpenAPI `security`. A webhook entry's `:doc` map now accepts a `:security` key, emitted on that webhook's operation alone and overriding the global `:security` requirement; `[]` opts it out entirely. This is what lets an API authenticate inbound calls one way and sign its outgoing webhooks another. Route-based endpoints still use the global requirement — their operation docs come from the controller's `spectral` annotation, which does not carry security.
 - OpenAPI 3.1 webhooks. `PhoenixSpectral.generate_openapi/3` accepts a `:webhooks` option, as does `PhoenixSpectral.OpenAPIController`. They are emitted under the spec's top-level [`webhooks`](https://spec.openapis.org/oas/v3.1.0#oasWebhooks) key, keyed by event name, and their payload types share `components/schemas` with the routes. Webhooks describe requests your API sends out, so they have no route in the router and are declared explicitly: each entry is a map of `:name`, `:method`, `:module` and `:payload`, plus optional `:responses` and `:doc`. A malformed entry raises rather than producing a broken spec, as does an unrecognized option — Spectra ignores option keys it does not know, so a typo would otherwise drop every webhook silently. A spec generated without the option is unchanged and emits no `webhooks` key.
 
 ## [0.6.1] - 2026-06-17
