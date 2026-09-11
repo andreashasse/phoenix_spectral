@@ -45,6 +45,40 @@ defmodule ExampleTest do
     end
   end
 
+  describe "GET /users/:id/vcard" do
+    test "sends the vCard bytes under the declared media type" do
+      conn = get(build_conn(), "/users/user:1/vcard")
+
+      assert conn.status == 200
+      assert get_resp_header(conn, "content-type") == ["text/vcard"]
+      assert get_resp_header(conn, "content-disposition") == [~s(attachment; filename="1.vcf")]
+      assert conn.resp_body =~ "BEGIN:VCARD"
+      assert conn.resp_body =~ "FN:Andreas"
+    end
+
+    test "the 404 in the same union is still JSON" do
+      conn = get(build_conn(), "/users/user:99/vcard")
+
+      assert conn.status == 404
+      assert get_resp_header(conn, "content-type") == ["application/json; charset=utf-8"]
+      assert Jason.decode!(conn.resp_body)["message"] =~ "not found"
+    end
+
+    test "the spec documents the vCard media type instead of a content-type header" do
+      spec =
+        build_conn()
+        |> get("/openapi")
+        |> Map.fetch!(:resp_body)
+        |> Jason.decode!()
+
+      response = spec["paths"]["/users/{id}/vcard"]["get"]["responses"]["200"]
+
+      assert Map.keys(response["content"]) == ["text/vcard"]
+      refute Map.has_key?(response["headers"], "content-type")
+      assert response["headers"]["content-disposition"]["required"] == true
+    end
+  end
+
   describe "POST /users" do
     test "returns 400 without x-api-key header (Bearer present)" do
       conn =

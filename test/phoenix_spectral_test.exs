@@ -381,4 +381,61 @@ defmodule PhoenixSpectralTest do
       assert query_params == []
     end
   end
+
+  describe "generate_openapi/2 with a declared response content type" do
+    defp generate_content_type_spec do
+      {:ok, json} =
+        PhoenixSpectral.generate_openapi(TestContentTypeRouter, %{
+          title: "Test API",
+          version: "1.0.0"
+        })
+
+      Jason.decode!(json)
+    end
+
+    test "a content-type entry in the response headers sets the media type of the body" do
+      spec = generate_content_type_spec()
+      response = spec["paths"]["/documents/{id}/pdf"]["get"]["responses"]["200"]
+
+      assert Map.keys(response["content"]) == ["application/pdf"]
+      assert response["content"]["application/pdf"]["schema"]["type"] == "string"
+    end
+
+    test "the declared content type is not emitted as a response header" do
+      spec = generate_content_type_spec()
+      response = spec["paths"]["/documents/{id}/pdf"]["get"]["responses"]["200"]
+
+      refute Map.has_key?(response["headers"], "content-type")
+      assert response["headers"]["content-disposition"]["required"] == true
+    end
+
+    test "responses in the same union without a declared content type stay JSON" do
+      spec = generate_content_type_spec()
+      response = spec["paths"]["/documents/{id}/pdf"]["get"]["responses"]["404"]
+
+      assert Map.keys(response["content"]) == ["application/json"]
+    end
+
+    test "an optional content-type entry declares the media type too" do
+      spec = generate_content_type_spec()
+      response = spec["paths"]["/documents/xml"]["get"]["responses"]["200"]
+
+      assert Map.keys(response["content"]) == ["application/xml"]
+      assert response["headers"] == nil or response["headers"] == %{}
+    end
+
+    test "a conn-returning action documents the declared media type" do
+      spec = generate_content_type_spec()
+      response = spec["paths"]["/documents/stream"]["get"]["responses"]["200"]
+
+      assert Map.keys(response["content"]) == ["application/xml"]
+    end
+
+    test "an explicit application/json declaration is the default media type" do
+      spec = generate_content_type_spec()
+      response = spec["paths"]["/documents/json"]["get"]["responses"]["200"]
+
+      assert Map.keys(response["content"]) == ["application/json"]
+    end
+  end
 end

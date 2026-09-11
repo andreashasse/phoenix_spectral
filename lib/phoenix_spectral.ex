@@ -82,6 +82,19 @@ defmodule PhoenixSpectral do
 
   PhoenixSpectral reads the type's metadata when building the spec and adds the
   `description` field to the parameter object in the OpenAPI output.
+
+  ## Response content types
+
+  A response body is documented under `application/json` unless its response headers map
+  declares a media type as a literal atom under `content-type`:
+
+      @spec mandate_pdf(Plug.Conn.t(), %{id: String.t()}, %{}, %{}, nil) ::
+              {200, %{"content-type": :"application/pdf"}, binary()}
+              | {404, %{}, Error.t()}
+
+  The 200 response is then emitted with `content: {"application/pdf": ...}`, the 404 stays
+  JSON, and the `content-type` entry itself is not emitted as a response header. See
+  `PhoenixSpectral.Controller` for how such a body is sent at runtime.
   """
   @spec generate_openapi(module(), map()) :: {:ok, iodata()} | {:error, list()}
   def generate_openapi(router, metadata) do
@@ -126,19 +139,29 @@ defmodule PhoenixSpectral do
   end
 
   defp add_responses(endpoint, controller, responses) do
+    type_info = controller.__spectra_type_info__()
+
     Enum.reduce(responses, endpoint, fn {status, headers_type, body_type}, ep ->
+      {content_type, header_fields} =
+        PhoenixSpectral.Internal.pop_content_type(headers_type, type_info)
+
       Spectral.OpenAPI.response(status, status_code_description(status))
-      |> Spectral.OpenAPI.response_with_body(controller, body_type)
-      |> add_response_headers(controller, headers_type)
+      |> add_response_body(controller, body_type, content_type)
+      |> add_response_headers(controller, header_fields)
       |> then(&Spectral.OpenAPI.add_response(ep, &1))
     end)
   end
 
-  defp add_response_headers(response, controller, headers_type) do
-    type_info = controller.__spectra_type_info__()
-    fields = PhoenixSpectral.Internal.map_fields(headers_type, type_info)
+  defp add_response_body(response, controller, body_type, nil) do
+    Spectral.OpenAPI.response_with_body(response, controller, body_type)
+  end
 
-    Enum.reduce(fields, response, fn field, acc ->
+  defp add_response_body(response, controller, body_type, content_type) do
+    Spectral.OpenAPI.response_with_body(response, controller, body_type, content_type)
+  end
+
+  defp add_response_headers(response, controller, header_fields) do
+    Enum.reduce(header_fields, response, fn field, acc ->
       literal_map_field(kind: kind, binary_name: binary_name, val_type: val_type) = field
 
       Spectral.OpenAPI.response_with_header(acc, binary_name, controller, %{

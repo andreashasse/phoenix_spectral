@@ -160,6 +160,36 @@ end
 | `:openapi_url` | no | URL path for the JSON spec, used by Swagger UI. Defaults to the path of this controller's `:show` route as declared in the router (scope prefixes included). Set explicitly to use a different path. |
 | `:cache` | no | Cache the generated JSON in `:persistent_term` (default: `false`) |
 
+## Non-JSON response bodies
+
+A response's media type is declared as a `content-type` entry in its response headers map, with the media type as a literal atom. PhoenixSpectral documents the body under that media type instead of `application/json`, and sends the bytes verbatim instead of JSON-encoding them:
+
+```elixir
+@spec mandate_pdf(Plug.Conn.t(), %{id: String.t()}, %{}, %{}, nil) ::
+        {200, %{"content-type": :"application/pdf"}, binary()}
+        | {404, %{}, MyApp.Error.t()}
+def mandate_pdf(_conn, %{id: id}, _query, _headers, _body) do
+  case MyApp.Documents.pdf(id) do
+    {:ok, pdf} -> {200, %{"content-type": :"application/pdf"}, pdf}
+    :not_found -> {404, %{}, %MyApp.Error{message: "Not found"}}
+  end
+end
+```
+
+The 200 above is documented as
+
+```json
+"200": { "description": "OK", "content": { "application/pdf": { "schema": { "type": "string" } } } }
+```
+
+while the 404 in the same union stays `application/json` — the declaration applies per response, not per endpoint.
+
+- The media type must be a **literal atom**: it is read from the typespec, so it is available to the OpenAPI generator. The value in the returned headers map is never consulted, and the entry is not emitted as a response header.
+- Any other entry in the headers map keeps behaving as a [typed response header](#typed-response-headers).
+- Under a non-JSON media type the body must be a `binary()` and is sent as-is; anything else raises. `application/json` and `*+json` bodies are still encoded by Spectral.
+- The `%{"content-type": ...}` shorthand declares a required key, so Dialyzer expects it in the returned map. Write `%{optional(:"content-type") => :"application/pdf"}` to leave it out of the return value.
+- An action that returns `conn` directly (below) sets its own `content-type`; declaring the entry makes the generated spec describe what the action actually sends.
+
 ## Streaming and raw responses
 
 An action can return a `Plug.Conn` directly instead of `{status, headers, body}`. This enables `send_file/3`, `send_chunked/2`, and any other conn-based response mechanism:
@@ -174,7 +204,7 @@ def download(conn, %{id: id}, _query, _headers, _body) do
 end
 ```
 
-**When a conn is returned, PhoenixSpectral passes it through without schema validation.** The typespec still documents the endpoint for the OpenAPI spec, but the actual response is your responsibility.
+**When a conn is returned, PhoenixSpectral passes it through without schema validation.** The typespec still documents the endpoint for the OpenAPI spec, but the actual response is your responsibility — including its `content-type`, which belongs in the typespec too (see [Non-JSON response bodies](#non-json-response-bodies)) so the generated spec matches what the action sends.
 
 ## Ecto schemas
 
@@ -253,7 +283,7 @@ The example app in [`example/`](https://github.com/andreashasse/phoenix_spectral
 
 ## Example
 
-The [`example/`](https://github.com/andreashasse/phoenix_spectral/tree/main/example) directory contains a complete runnable Phoenix app demonstrating a CRUD user API with path parameters, typed request headers, union return types, and an OpenAPI/Swagger UI endpoint. It also shows two authentication styles side by side: an `x-api-key` header (an `apiKey` security scheme validated from the controller typespec) and a `Bearer` token (an `http`/`bearer` security scheme verified by a plug, `Example.BearerAuth`, that strips the `Bearer ` prefix at runtime). Both surface in Swagger UI's **Authorize** dialog. To run it:
+The [`example/`](https://github.com/andreashasse/phoenix_spectral/tree/main/example) directory contains a complete runnable Phoenix app demonstrating a CRUD user API with path parameters, typed request headers, union return types, and an OpenAPI/Swagger UI endpoint. It also shows a `text/vcard` download endpoint whose media type is declared in the response headers map, and two authentication styles side by side: an `x-api-key` header (an `apiKey` security scheme validated from the controller typespec) and a `Bearer` token (an `http`/`bearer` security scheme verified by a plug, `Example.BearerAuth`, that strips the `Bearer ` prefix at runtime). Both surface in Swagger UI's **Authorize** dialog. To run it:
 
 ```bash
 cd example
