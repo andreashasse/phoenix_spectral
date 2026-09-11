@@ -437,5 +437,14 @@ defmodule PhoenixSpectralTest do
 
       assert Map.keys(response["content"]) == ["application/json"]
     end
+
+    test "a content-type entry that is not a literal atom raises" do
+      assert_raise ArgumentError, ~r/must be a literal atom/, fn ->
+        PhoenixSpectral.generate_openapi(TestInvalidContentTypeRouter, %{
+          title: "Test API",
+          version: "1.0.0"
+        })
+      end
+    end
   end
 end

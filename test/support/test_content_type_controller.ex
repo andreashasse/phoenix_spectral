@@ -43,6 +43,24 @@ defmodule TestContentTypeController do
     {200, %{}, %TestUser{id: 1, name: "Alice", email: "alice@example.com"}}
   end
 
+  @spec download_json_mixed_case(Plug.Conn.t(), %{}, %{}, %{}, nil) ::
+          {200, %{optional(:"content-type") => :"Application/JSON"}, TestUser.t()}
+  def download_json_mixed_case(_conn, _path_args, %{}, _headers, _body) do
+    {200, %{}, %TestUser{id: 1, name: "Alice", email: "alice@example.com"}}
+  end
+
+  @spec download_empty(Plug.Conn.t(), %{}, %{}, %{}, nil) ::
+          {204, %{optional(:"content-type") => :"application/pdf"}, nil}
+  def download_empty(_conn, _path_args, %{}, _headers, _body) do
+    {204, %{}, nil}
+  end
+
+  @spec download_dynamic_content_type(Plug.Conn.t(), %{}, %{}, %{}, nil) ::
+          {200, %{"content-type": String.t()}, binary()}
+  def download_dynamic_content_type(_conn, _path_args, %{}, _headers, _body) do
+    {200, %{"content-type": "application/pdf"}, "bytes"}
+  end
+
   @spec download_not_binary(Plug.Conn.t(), %{}, %{}, %{}, nil) ::
           {200, %{optional(:"content-type") => :"application/pdf"}, TestUser.t()}
   def download_not_binary(_conn, _path_args, %{}, _headers, _body) do

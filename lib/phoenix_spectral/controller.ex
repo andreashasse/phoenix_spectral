@@ -436,7 +436,8 @@ defmodule PhoenixSpectral.Controller do
   end
 
   defp json_content_type?(content_type) do
-    content_type == @default_content_type or String.ends_with?(content_type, "+json")
+    downcased = String.downcase(content_type)
+    downcased == @default_content_type or String.ends_with?(downcased, "+json")
   end
 
   defp put_response_content_type(conn, content_type) do

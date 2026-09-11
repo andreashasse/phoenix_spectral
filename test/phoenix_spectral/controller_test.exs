@@ -478,6 +478,20 @@ defmodule PhoenixSpectral.ControllerTest do
       assert Jason.decode!(conn.resp_body)["name"] == "Alice"
     end
 
+    test "media type casing does not change how the body is encoded" do
+      conn = dispatch_content_type(:download_json_mixed_case)
+
+      assert conn.status == 200
+      assert Jason.decode!(conn.resp_body)["name"] == "Alice"
+    end
+
+    test "a nil body type sends an empty body whatever media type is declared" do
+      conn = dispatch_content_type(:download_empty)
+
+      assert conn.status == 204
+      assert conn.resp_body == ""
+    end
+
     test "a non-binary body under a non-JSON content type raises" do
       assert_raise RuntimeError, ~r/must return a binary body/, fn ->
         dispatch_content_type(:download_not_binary)

@@ -195,7 +195,8 @@ while the 404 in the same union stays `application/json` — the declaration app
 An action can return a `Plug.Conn` directly instead of `{status, headers, body}`. This enables `send_file/3`, `send_chunked/2`, and any other conn-based response mechanism:
 
 ```elixir
-@spec download(Plug.Conn.t(), %{id: String.t()}, %{}, %{}, nil) :: {200, %{}, nil}
+@spec download(Plug.Conn.t(), %{id: String.t()}, %{}, %{}, nil) ::
+        {200, %{optional(:"content-type") => :"application/octet-stream"}, binary()}
 def download(conn, %{id: id}, _query, _headers, _body) do
   path = MyApp.Files.path_for(id)
   conn
