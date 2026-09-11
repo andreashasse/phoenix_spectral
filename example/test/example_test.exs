@@ -50,9 +50,9 @@ defmodule ExampleTest do
       conn = get(build_conn(), "/users/user:1/vcard")
 
       assert conn.status == 200
-      assert get_resp_header(conn, "content-type") == ["text/vcard"]
+      assert get_resp_header(conn, "content-type") == ["text/vcard; charset=utf-8"]
       assert get_resp_header(conn, "content-disposition") == [~s(attachment; filename="1.vcf")]
-      assert conn.resp_body =~ "BEGIN:VCARD"
+      assert conn.resp_body =~ "BEGIN:VCARD\r\n"
       assert conn.resp_body =~ "FN:Andreas"
     end
 
@@ -73,7 +73,7 @@ defmodule ExampleTest do
 
       response = spec["paths"]["/users/{id}/vcard"]["get"]["responses"]["200"]
 
-      assert Map.keys(response["content"]) == ["text/vcard"]
+      assert Map.keys(response["content"]) == ["text/vcard; charset=utf-8"]
       refute Map.has_key?(response["headers"], "content-type")
       assert response["headers"]["content-disposition"]["required"] == true
     end

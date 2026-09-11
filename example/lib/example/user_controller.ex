@@ -7,7 +7,7 @@ defmodule Example.UserController do
   @type write_headers :: %{required(:"x-api-key") => String.t()}
 
   @type vcard_headers :: %{
-          required(:"content-type") => :"text/vcard",
+          optional(:"content-type") => :"text/vcard; charset=utf-8",
           required(:"content-disposition") => String.t()
         }
 
@@ -73,23 +73,17 @@ defmodule Example.UserController do
         {404, %{}, %Error{message: "User #{id} not found"}}
 
       %User{} = user ->
-        headers = %{
-          "content-type": :"text/vcard",
-          "content-disposition": ~s(attachment; filename="#{user.id}.vcf")
-        }
-
+        headers = %{"content-disposition": ~s(attachment; filename="#{user.id}.vcf")}
         {200, headers, vcard_body(user)}
     end
   end
 
+  # RFC 6350 requires CRLF line endings.
   defp vcard_body(%User{} = user) do
-    """
-    BEGIN:VCARD
-    VERSION:4.0
-    FN:#{user.name}
-    EMAIL:#{user.email}
-    END:VCARD
-    """
+    Enum.join(
+      ["BEGIN:VCARD", "VERSION:4.0", "FN:#{user.name}", "EMAIL:#{user.email}", "END:VCARD", ""],
+      "\r\n"
+    )
   end
 
   spectral summary: "Update user", description: "Updates an existing user by ID"

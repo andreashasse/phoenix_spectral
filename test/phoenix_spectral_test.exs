@@ -421,7 +421,7 @@ defmodule PhoenixSpectralTest do
       response = spec["paths"]["/documents/xml"]["get"]["responses"]["200"]
 
       assert Map.keys(response["content"]) == ["application/xml"]
-      assert response["headers"] == nil or response["headers"] == %{}
+      refute Map.has_key?(response, "headers")
     end
 
     test "a conn-returning action documents the declared media type" do
@@ -436,6 +436,38 @@ defmodule PhoenixSpectralTest do
       response = spec["paths"]["/documents/json"]["get"]["responses"]["200"]
 
       assert Map.keys(response["content"]) == ["application/json"]
+    end
+
+    test "the content-type entry is matched whatever its casing" do
+      spec = generate_content_type_spec()
+      response = spec["paths"]["/documents/capitalized"]["get"]["responses"]["200"]
+
+      assert Map.keys(response["content"]) == ["application/pdf"]
+      refute Map.has_key?(response, "headers")
+    end
+
+    test "a +json media type is documented under itself" do
+      spec = generate_content_type_spec()
+      response = spec["paths"]["/documents/problem"]["get"]["responses"]["200"]
+
+      assert Map.keys(response["content"]) == ["application/problem+json"]
+      assert response["content"]["application/problem+json"]["schema"]["$ref"] =~ "TestError"
+    end
+
+    test "a media type carrying parameters is documented verbatim" do
+      spec = generate_content_type_spec()
+      response = spec["paths"]["/documents/json-charset"]["get"]["responses"]["200"]
+
+      assert Map.keys(response["content"]) == ["application/json; charset=utf-8"]
+    end
+
+    test "a non-binary body under a non-JSON media type raises" do
+      assert_raise ArgumentError, ~r/must be binary\(\)/, fn ->
+        PhoenixSpectral.generate_openapi(TestNonBinaryBodyRouter, %{
+          title: "Test API",
+          version: "1.0.0"
+        })
+      end
     end
 
     test "a content-type entry that is not a literal atom raises" do

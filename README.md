@@ -118,6 +118,8 @@ def show(_conn, %{id: id}, _query, _headers, _body) do
 end
 ```
 
+`content-type` is reserved in this map: it declares the response's media type rather than a header (see [Non-JSON response bodies](#non-json-response-bodies)) and must be a literal atom.
+
 ### Step 3: Serve the OpenAPI spec
 
 ```elixir
@@ -184,9 +186,10 @@ The 200 above is documented as
 
 while the 404 in the same union stays `application/json` — the declaration applies per response, not per endpoint.
 
-- The media type must be a **literal atom**: it is read from the typespec, so it is available to the OpenAPI generator. The value in the returned headers map is never consulted, and the entry is not emitted as a response header.
+- The media type must be a **literal atom**: it is read from the typespec, so it is available to the OpenAPI generator. The value in the returned headers map is never consulted, and the entry is not emitted as a response header. Anything else in that position — a `String.t()`, an integer, a union of two media types — raises, as does a second `content-type` entry: one response carries one media type.
 - Any other entry in the headers map keeps behaving as a [typed response header](#typed-response-headers).
-- Under a non-JSON media type the body must be a `binary()` and is sent as-is; anything else raises. `application/json` and `*+json` bodies are still encoded by Spectral.
+- Under a non-JSON media type the body is sent as-is, so it must be typed `binary()`; declaring anything else raises when the spec is generated, and returning a non-binary raises on the request. `application/json` and `*+json` bodies are still encoded by Spectral, whatever the media type's casing.
+- Only JSON responses get `; charset=utf-8` appended. Bake a charset into the atom when a text format needs one: `:"text/csv; charset=utf-8"` is sent verbatim and keyed verbatim in the spec.
 - The `%{"content-type": ...}` shorthand declares a required key, so Dialyzer expects it in the returned map. Write `%{optional(:"content-type") => :"application/pdf"}` to leave it out of the return value.
 - An action that returns `conn` directly (below) sets its own `content-type`; declaring the entry makes the generated spec describe what the action actually sends.
 

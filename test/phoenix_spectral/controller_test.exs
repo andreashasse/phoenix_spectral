@@ -485,11 +485,48 @@ defmodule PhoenixSpectral.ControllerTest do
       assert Jason.decode!(conn.resp_body)["name"] == "Alice"
     end
 
-    test "a nil body type sends an empty body whatever media type is declared" do
+    test "a nil body type sends an empty body" do
       conn = dispatch_content_type(:download_empty)
 
       assert conn.status == 204
       assert conn.resp_body == ""
+      assert {"content-type", "application/pdf"} in conn.resp_headers
+    end
+
+    test "the content-type entry is matched whatever its casing" do
+      conn = dispatch_content_type(:download_capitalized)
+
+      assert conn.status == 200
+      assert conn.resp_body == "%PDF-1.7\n"
+      assert {"content-type", "application/pdf"} in conn.resp_headers
+    end
+
+    test "a +json media type is encoded as JSON under its own content type" do
+      conn = dispatch_content_type(:download_problem_json)
+
+      assert conn.status == 200
+      assert Jason.decode!(conn.resp_body)["message"] == "Not found"
+      assert {"content-type", "application/problem+json; charset=utf-8"} in conn.resp_headers
+    end
+
+    test "a media type carrying parameters keeps them and still encodes JSON" do
+      conn = dispatch_content_type(:download_json_with_charset)
+
+      assert conn.status == 200
+      assert Jason.decode!(conn.resp_body)["name"] == "Alice"
+      assert {"content-type", "application/json; charset=utf-8"} in conn.resp_headers
+    end
+
+    test "more than one content-type entry raises" do
+      assert_raise ArgumentError, ~r/at most one media type/, fn ->
+        dispatch_content_type(:download_two_content_types)
+      end
+    end
+
+    test "a content-type entry that is not an atom raises" do
+      assert_raise ArgumentError, ~r/must be a literal atom/, fn ->
+        dispatch_content_type(:download_integer_content_type)
+      end
     end
 
     test "a non-binary body under a non-JSON content type raises" do

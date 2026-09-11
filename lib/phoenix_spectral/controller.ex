@@ -78,10 +78,12 @@ defmodule PhoenixSpectral.Controller do
       end
 
   The media type is read from the typespec, not from the returned headers map, and the
-  entry is not sent as a response header. Under a non-JSON media type the body must be a
-  `binary()`; anything else raises. `application/json` and `*+json` bodies are still
-  encoded by `Spectral.encode`. The declaration applies to the one response it is
-  declared on — the 404 above is still JSON.
+  entry is not sent as a response header. Under a non-JSON media type the body must be
+  typed and returned as a `binary()`; anything else raises. `application/json` and
+  `*+json` bodies are still encoded by `Spectral.encode`, whatever their casing, and only
+  they get `; charset=utf-8` appended — bake a charset into the atom
+  (`:"text/csv; charset=utf-8"`) when another format needs one. The declaration applies to
+  the one response it is declared on — the 404 above is still JSON.
 
   ## Required vs optional query params and headers
 
@@ -418,7 +420,7 @@ defmodule PhoenixSpectral.Controller do
   defp encode_response_body(_type_info, sp_literal(value: nil), nil, _content_type), do: {:ok, ""}
 
   defp encode_response_body(type_info, body_type, body, content_type) do
-    if json_content_type?(content_type) do
+    if PhoenixSpectral.Internal.json_content_type?(content_type) do
       case Spectral.encode(body, type_info, body_type, :json, [:pre_encoded]) do
         {:ok, term} -> {:ok, Phoenix.json_library().encode!(term)}
         {:error, _} = err -> err
@@ -435,16 +437,15 @@ defmodule PhoenixSpectral.Controller do
             "binary body, got: #{inspect(body)}"
   end
 
-  defp json_content_type?(content_type) do
-    downcased = String.downcase(content_type)
-    downcased == @default_content_type or String.ends_with?(downcased, "+json")
+  defp put_response_content_type(conn, content_type) do
+    Plug.Conn.put_resp_content_type(conn, content_type, response_charset(content_type))
   end
 
-  defp put_response_content_type(conn, content_type) do
-    if json_content_type?(content_type) do
-      Plug.Conn.put_resp_content_type(conn, content_type)
-    else
-      Plug.Conn.put_resp_header(conn, "content-type", content_type)
+  defp response_charset(content_type) do
+    cond do
+      String.contains?(content_type, ";") -> nil
+      PhoenixSpectral.Internal.json_content_type?(content_type) -> "utf-8"
+      true -> nil
     end
   end
 

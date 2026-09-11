@@ -43,6 +43,40 @@ defmodule TestContentTypeController do
     {200, %{}, %TestUser{id: 1, name: "Alice", email: "alice@example.com"}}
   end
 
+  @spec download_capitalized(Plug.Conn.t(), %{}, %{}, %{}, nil) ::
+          {200, %{optional(:"Content-Type") => :"application/pdf"}, binary()}
+  def download_capitalized(_conn, _path_args, %{}, _headers, _body) do
+    {200, %{}, "%PDF-1.7\n"}
+  end
+
+  @spec download_problem_json(Plug.Conn.t(), %{}, %{}, %{}, nil) ::
+          {200, %{optional(:"content-type") => :"application/problem+json"}, TestError.t()}
+  def download_problem_json(_conn, _path_args, %{}, _headers, _body) do
+    {200, %{}, %TestError{message: "Not found"}}
+  end
+
+  @spec download_json_with_charset(Plug.Conn.t(), %{}, %{}, %{}, nil) ::
+          {200, %{optional(:"content-type") => :"application/json; charset=utf-8"}, TestUser.t()}
+  def download_json_with_charset(_conn, _path_args, %{}, _headers, _body) do
+    {200, %{}, %TestUser{id: 1, name: "Alice", email: "alice@example.com"}}
+  end
+
+  @spec download_two_content_types(Plug.Conn.t(), %{}, %{}, %{}, nil) ::
+          {200,
+           %{
+             required(:"content-type") => :"application/pdf",
+             required(:"Content-Type") => :"application/xml"
+           }, binary()}
+  def download_two_content_types(_conn, _path_args, %{}, _headers, _body) do
+    {200, %{"content-type": :"application/pdf", "Content-Type": :"application/xml"}, "bytes"}
+  end
+
+  @spec download_integer_content_type(Plug.Conn.t(), %{}, %{}, %{}, nil) ::
+          {200, %{required(:"content-type") => 42}, binary()}
+  def download_integer_content_type(_conn, _path_args, %{}, _headers, _body) do
+    {200, %{"content-type": 42}, "bytes"}
+  end
+
   @spec download_json_mixed_case(Plug.Conn.t(), %{}, %{}, %{}, nil) ::
           {200, %{optional(:"content-type") => :"Application/JSON"}, TestUser.t()}
   def download_json_mixed_case(_conn, _path_args, %{}, _headers, _body) do
