@@ -95,6 +95,24 @@ defmodule TestContentTypeController do
     {200, %{"content-type": "application/pdf"}, "bytes"}
   end
 
+  @spec download_missing_content_type(Plug.Conn.t(), %{}, %{}, %{}, nil) ::
+          {200, %{required(:"content-type") => :"application/pdf"}, binary()}
+  def download_missing_content_type(_conn, _path_args, %{}, _headers, _body) do
+    {200, %{}, "%PDF-1.7\n"}
+  end
+
+  @spec download_wrong_content_type(Plug.Conn.t(), %{}, %{}, %{}, nil) ::
+          {200, %{required(:"content-type") => :"application/pdf"}, binary()}
+  def download_wrong_content_type(_conn, _path_args, %{}, _headers, _body) do
+    {200, %{"content-type": :"application/xml"}, "%PDF-1.7\n"}
+  end
+
+  @spec download_capitalized_returned(Plug.Conn.t(), %{}, %{}, %{}, nil) ::
+          {200, %{required(:"Content-Type") => :"application/pdf"}, binary()}
+  def download_capitalized_returned(_conn, _path_args, %{}, _headers, _body) do
+    {200, %{"Content-Type": :"application/pdf"}, "%PDF-1.7\n"}
+  end
+
   @spec download_not_binary(Plug.Conn.t(), %{}, %{}, %{}, nil) ::
           {200, %{optional(:"content-type") => :"application/pdf"}, TestUser.t()}
   def download_not_binary(_conn, _path_args, %{}, _headers, _body) do

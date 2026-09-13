@@ -93,7 +93,8 @@ defmodule PhoenixSpectral do
               | {404, %{}, Error.t()}
 
   The 200 response is then emitted with `content: {"application/pdf": ...}`, the 404 stays
-  JSON, and the `content-type` entry itself is not emitted as a response header. A
+  JSON, and the `content-type` entry itself is not listed in the response's `headers`
+  object — the media type it declares is where the body hangs instead. A
   non-JSON media type is sent verbatim at runtime, so its body type must be `binary()`;
   declaring anything else raises here rather than generating a spec the endpoint cannot
   serve. See `PhoenixSpectral.Controller` for how such a body is sent.

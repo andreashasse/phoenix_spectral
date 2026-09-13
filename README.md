@@ -118,7 +118,7 @@ def show(_conn, %{id: id}, _query, _headers, _body) do
 end
 ```
 
-`content-type` is reserved in this map: it declares the response's media type rather than a header (see [Non-JSON response bodies](#non-json-response-bodies)) and must be a literal atom.
+`content-type` is reserved in this map: it must be a literal atom, and it declares the response's media type (see [Non-JSON response bodies](#non-json-response-bodies)). The entry is validated like the headers around it, but it sets the media type instead of being emitted as a header of its own.
 
 ### Step 3: Serve the OpenAPI spec
 
@@ -168,11 +168,11 @@ A response's media type is declared as a `content-type` entry in its response he
 
 ```elixir
 @spec mandate_pdf(Plug.Conn.t(), %{id: String.t()}, %{}, %{}, nil) ::
-        {200, %{optional(:"content-type") => :"application/pdf"}, binary()}
+        {200, %{"content-type": :"application/pdf"}, binary()}
         | {404, %{}, MyApp.Error.t()}
 def mandate_pdf(_conn, %{id: id}, _query, _headers, _body) do
   case MyApp.Documents.pdf(id) do
-    {:ok, pdf} -> {200, %{}, pdf}
+    {:ok, pdf} -> {200, %{"content-type": :"application/pdf"}, pdf}
     :not_found -> {404, %{}, %MyApp.Error{message: "Not found"}}
   end
 end
@@ -186,11 +186,12 @@ The 200 above is documented as
 
 while the 404 in the same union stays `application/json` — the declaration applies per response, not per endpoint.
 
-- The media type must be a **literal atom**: it is read from the typespec, so it is available to the OpenAPI generator. The value in the returned headers map is never consulted, and the entry is not emitted as a response header. Anything else in that position — a `String.t()`, an integer, a union of two media types — raises, as does a second `content-type` entry: one response carries one media type.
+- The media type must be a **literal atom**: it is read from the typespec, so it is available to the OpenAPI generator. Anything else in that position — a `String.t()`, an integer, a union of two media types — raises, as does a second `content-type` entry: one response carries one media type.
+- The response carries the `content-type` header, set from the declared media type. The entry is validated like any other declared response header — a required declaration the action omits raises, and so does a returned value that does not match the declared media type — but its value is not what gets sent, and the OpenAPI response keys the body under the media type instead of listing it as a response header.
 - Any other entry in the headers map keeps behaving as a [typed response header](#typed-response-headers).
 - Under a non-JSON media type the body is sent as-is, so it must be typed `binary()`; declaring anything else raises when the spec is generated, and returning a non-binary raises on the request. `application/json` and `*+json` bodies are still encoded by Spectral, whatever the media type's casing.
 - Only JSON responses get `; charset=utf-8` appended. Bake a charset into the atom when a text format needs one: `:"text/csv; charset=utf-8"` is sent verbatim and keyed verbatim in the spec.
-- `optional(:"content-type")` above is what lets the action leave the entry out of the map it returns. The `%{"content-type": ...}` shorthand declares a required key instead, so Dialyzer expects it in the returned map — its value is ignored either way.
+- The `%{"content-type": ...}` shorthand above declares a required key, so the action returns it and Dialyzer expects it there. Write `%{optional(:"content-type") => :"application/pdf"}` to leave it out of the return value — the media type then comes from the typespec alone, which is what an action returning `conn` does.
 - An action that returns `conn` directly (below) sets its own `content-type`; declaring the entry makes the generated spec describe what the action actually sends.
 
 ## Streaming and raw responses

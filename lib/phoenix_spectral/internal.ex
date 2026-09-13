@@ -64,6 +64,15 @@ defmodule PhoenixSpectral.Internal do
     end
   end
 
+  def response_content_type(headers_type, type_info) do
+    {content_type, _header_fields} = pop_content_type(headers_type, type_info)
+    content_type
+  end
+
+  def content_type_header?(binary_name) do
+    String.downcase(binary_name) == @content_type_header
+  end
+
   def json_content_type?(content_type) do
     media_type = media_type(content_type)
     media_type == @json_content_type or String.ends_with?(media_type, "+json")
@@ -103,7 +112,7 @@ defmodule PhoenixSpectral.Internal do
   end
 
   defp content_type_field?(literal_map_field(binary_name: binary_name)) do
-    String.downcase(binary_name) == @content_type_header
+    content_type_header?(binary_name)
   end
 
   defp content_type_field?(_other_map_field), do: false

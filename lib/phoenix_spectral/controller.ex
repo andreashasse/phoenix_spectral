@@ -68,20 +68,27 @@ defmodule PhoenixSpectral.Controller do
   JSON-encoded, and the OpenAPI spec documents it under that media type:
 
       @spec mandate_pdf(Plug.Conn.t(), %{id: String.t()}, %{}, %{}, nil) ::
-              {200, %{optional(:"content-type") => :"application/pdf"}, binary()}
+              {200, %{"content-type": :"application/pdf"}, binary()}
               | {404, %{}, Error.t()}
       def mandate_pdf(_conn, %{id: id}, _query_params, _headers, _body) do
         case Documents.pdf(id) do
-          {:ok, pdf} -> {200, %{}, pdf}
+          {:ok, pdf} -> {200, %{"content-type": :"application/pdf"}, pdf}
           :not_found -> {404, %{}, %Error{message: "Not found"}}
         end
       end
 
-  The declaration lives in the typespec alone: the action does not repeat the entry in the
-  map it returns, and it is not sent as a response header alongside the ones that are.
-  `optional/1` is what lets the action leave it out — with the `%{"content-type": ...}`
-  shorthand the key is required, so Dialyzer expects it in the returned map; either way
-  the returned value is never read, and the media type comes from the typespec.
+  The response carries `content-type: application/pdf`, and the entry behaves like every
+  other declared response header: required here, so the action must return it, and the
+  value it returns is validated against the declared media type — returning
+  `:"application/xml"` under this spec raises, as returning an integer for a
+  `String.t()` header does. Declare it `optional(:"content-type")` to leave it out of the
+  returned map; the media type is then taken from the typespec alone, which is also how
+  an action that returns `conn` (below) declares what it sends.
+
+  What the entry does *not* do is travel the ordinary header path: the media type is read
+  from the typespec — that is what makes it available to the OpenAPI generator — the
+  response's `content-type` is set from it rather than from the returned value, and the
+  spec keys the response body under it instead of listing it as a response header.
 
   Under a non-JSON media type the body must be typed and returned as a `binary()`;
   anything else raises. `application/json` and `*+json` bodies are still encoded by
@@ -365,13 +372,11 @@ defmodule PhoenixSpectral.Controller do
          response_headers,
          response_body
        ) do
-    {content_type, header_fields} =
-      PhoenixSpectral.Internal.pop_content_type(
-        lookup_response_headers_type(type_info, action, status),
-        type_info
-      )
+    headers_type = lookup_response_headers_type(type_info, action, status)
+    content_type = PhoenixSpectral.Internal.response_content_type(headers_type, type_info)
+    fields = PhoenixSpectral.Internal.map_fields(headers_type, type_info)
 
-    conn = encode_response_headers(conn, type_info, action, header_fields, response_headers)
+    conn = encode_response_headers(conn, type_info, action, fields, response_headers)
     body_type = lookup_response_body_type(type_info, action, status)
     content_type = content_type || @default_content_type
 
@@ -454,6 +459,14 @@ defmodule PhoenixSpectral.Controller do
     end
   end
 
+  defp put_declared_header(conn, binary_name, encoded) do
+    if PhoenixSpectral.Internal.content_type_header?(binary_name) do
+      conn
+    else
+      Plug.Conn.put_resp_header(conn, binary_name, encoded)
+    end
+  end
+
   defp encode_response_headers(conn, type_info, action, fields, response_headers) do
     Enum.reduce(fields, conn, fn field, acc ->
       literal_map_field(kind: kind, name: name, binary_name: binary_name, val_type: val_type) =
@@ -462,7 +475,7 @@ defmodule PhoenixSpectral.Controller do
       case Map.fetch(response_headers, name) do
         {:ok, value} ->
           {:ok, encoded} = Spectral.encode(value, type_info, val_type, :binary_string)
-          Plug.Conn.put_resp_header(acc, binary_name, encoded)
+          put_declared_header(acc, binary_name, encoded)
 
         :error when kind == :exact ->
           raise "PhoenixSpectral: required response header #{inspect(binary_name)} declared in " <>

@@ -529,6 +529,27 @@ defmodule PhoenixSpectral.ControllerTest do
       end
     end
 
+    test "a required content-type entry missing from the returned map raises" do
+      assert_raise RuntimeError, ~r/required response header "content-type"/, fn ->
+        dispatch_content_type(:download_missing_content_type)
+      end
+    end
+
+    test "a returned content-type that does not match the declared media type raises" do
+      assert_raise MatchError, fn ->
+        dispatch_content_type(:download_wrong_content_type)
+      end
+    end
+
+    test "a returned content-type entry is validated but not sent under its declared casing" do
+      conn = dispatch_content_type(:download_capitalized_returned)
+
+      assert conn.status == 200
+      assert conn.resp_body == "%PDF-1.7\n"
+      assert {"content-type", "application/pdf"} in conn.resp_headers
+      assert Plug.Conn.get_resp_header(conn, "Content-Type") == []
+    end
+
     test "a non-binary body under a non-JSON content type raises" do
       assert_raise RuntimeError, ~r/must return a binary body/, fn ->
         dispatch_content_type(:download_not_binary)
