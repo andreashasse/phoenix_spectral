@@ -68,22 +68,27 @@ defmodule PhoenixSpectral.Controller do
   JSON-encoded, and the OpenAPI spec documents it under that media type:
 
       @spec mandate_pdf(Plug.Conn.t(), %{id: String.t()}, %{}, %{}, nil) ::
-              {200, %{"content-type": :"application/pdf"}, binary()}
+              {200, %{optional(:"content-type") => :"application/pdf"}, binary()}
               | {404, %{}, Error.t()}
       def mandate_pdf(_conn, %{id: id}, _query_params, _headers, _body) do
         case Documents.pdf(id) do
-          {:ok, pdf} -> {200, %{"content-type": :"application/pdf"}, pdf}
+          {:ok, pdf} -> {200, %{}, pdf}
           :not_found -> {404, %{}, %Error{message: "Not found"}}
         end
       end
 
-  The media type is read from the typespec, not from the returned headers map, and the
-  entry is not sent as a response header. Under a non-JSON media type the body must be
-  typed and returned as a `binary()`; anything else raises. `application/json` and
-  `*+json` bodies are still encoded by `Spectral.encode`, whatever their casing, and only
-  they get `; charset=utf-8` appended — bake a charset into the atom
-  (`:"text/csv; charset=utf-8"`) when another format needs one. The declaration applies to
-  the one response it is declared on — the 404 above is still JSON.
+  The declaration lives in the typespec alone: the action does not repeat the entry in the
+  map it returns, and it is not sent as a response header alongside the ones that are.
+  `optional/1` is what lets the action leave it out — with the `%{"content-type": ...}`
+  shorthand the key is required, so Dialyzer expects it in the returned map; either way
+  the returned value is never read, and the media type comes from the typespec.
+
+  Under a non-JSON media type the body must be typed and returned as a `binary()`;
+  anything else raises. `application/json` and `*+json` bodies are still encoded by
+  `Spectral.encode`, whatever their casing, and only they get `; charset=utf-8` appended —
+  bake a charset into the atom (`:"text/csv; charset=utf-8"`) when another format needs
+  one. The declaration applies to the one response it is declared on — the 404 above is
+  still JSON.
 
   ## Required vs optional query params and headers
 

@@ -168,11 +168,11 @@ A response's media type is declared as a `content-type` entry in its response he
 
 ```elixir
 @spec mandate_pdf(Plug.Conn.t(), %{id: String.t()}, %{}, %{}, nil) ::
-        {200, %{"content-type": :"application/pdf"}, binary()}
+        {200, %{optional(:"content-type") => :"application/pdf"}, binary()}
         | {404, %{}, MyApp.Error.t()}
 def mandate_pdf(_conn, %{id: id}, _query, _headers, _body) do
   case MyApp.Documents.pdf(id) do
-    {:ok, pdf} -> {200, %{"content-type": :"application/pdf"}, pdf}
+    {:ok, pdf} -> {200, %{}, pdf}
     :not_found -> {404, %{}, %MyApp.Error{message: "Not found"}}
   end
 end
@@ -190,7 +190,7 @@ while the 404 in the same union stays `application/json` — the declaration app
 - Any other entry in the headers map keeps behaving as a [typed response header](#typed-response-headers).
 - Under a non-JSON media type the body is sent as-is, so it must be typed `binary()`; declaring anything else raises when the spec is generated, and returning a non-binary raises on the request. `application/json` and `*+json` bodies are still encoded by Spectral, whatever the media type's casing.
 - Only JSON responses get `; charset=utf-8` appended. Bake a charset into the atom when a text format needs one: `:"text/csv; charset=utf-8"` is sent verbatim and keyed verbatim in the spec.
-- The `%{"content-type": ...}` shorthand declares a required key, so Dialyzer expects it in the returned map. Write `%{optional(:"content-type") => :"application/pdf"}` to leave it out of the return value.
+- `optional(:"content-type")` above is what lets the action leave the entry out of the map it returns. The `%{"content-type": ...}` shorthand declares a required key instead, so Dialyzer expects it in the returned map — its value is ignored either way.
 - An action that returns `conn` directly (below) sets its own `content-type`; declaring the entry makes the generated spec describe what the action actually sends.
 
 ## Streaming and raw responses
