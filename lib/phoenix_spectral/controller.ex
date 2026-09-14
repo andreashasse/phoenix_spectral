@@ -429,6 +429,11 @@ defmodule PhoenixSpectral.Controller do
 
   defp encode_response_body(_type_info, sp_literal(value: nil), nil, _content_type), do: {:ok, ""}
 
+  defp encode_response_body(_type_info, sp_literal(value: nil), body, _content_type) do
+    raise "PhoenixSpectral: a response whose declared body type is nil must return nil, " <>
+            "got: #{inspect(body)}"
+  end
+
   defp encode_response_body(type_info, body_type, body, content_type) do
     if PhoenixSpectral.Internal.json_content_type?(content_type) do
       case Spectral.encode(body, type_info, body_type, :json, [:pre_encoded]) do

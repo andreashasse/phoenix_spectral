@@ -557,6 +557,12 @@ defmodule PhoenixSpectral.ControllerTest do
       assert Plug.Conn.get_resp_header(conn, "Content-Type") == []
     end
 
+    test "a body returned under a nil body type raises" do
+      assert_raise RuntimeError, ~r/declared body type is nil must return nil/, fn ->
+        dispatch_content_type(:download_empty_with_body)
+      end
+    end
+
     test "a non-binary body under a non-JSON content type raises" do
       assert_raise RuntimeError, ~r/must return a binary body/, fn ->
         dispatch_content_type(:download_not_binary)

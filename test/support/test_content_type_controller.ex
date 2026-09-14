@@ -128,6 +128,12 @@ defmodule TestContentTypeController do
     {200, %{"Content-Type": :"application/pdf"}, "%PDF-1.7\n"}
   end
 
+  @spec download_empty_with_body(Plug.Conn.t(), %{}, %{}, %{}, nil) ::
+          {200, %{optional(:"content-type") => :"application/pdf"}, nil}
+  def download_empty_with_body(_conn, _path_args, %{}, _headers, _body) do
+    {200, %{}, "%PDF-1.7\n"}
+  end
+
   @spec download_not_binary(Plug.Conn.t(), %{}, %{}, %{}, nil) ::
           {200, %{optional(:"content-type") => :"application/pdf"}, TestUser.t()}
   def download_not_binary(_conn, _path_args, %{}, _headers, _body) do

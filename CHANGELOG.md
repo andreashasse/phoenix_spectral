@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- A response whose declared body type is `nil` now raises when the action returns a body anyway, instead of sending those bytes under a spec that documents no content for the response. The JSON path already rejected the mismatch; the raw path did not.
 - A parameterized type alias (`@type tagged(t) :: %{...}`) used as a response headers map or a response body now resolves. Both resolution sites looked the alias up at arity 0 and crashed with a `MatchError`; type references are now resolved in one place, at the arity the reference carries, with the reference's arguments substituted for the alias's variables.
 
 ### Changed
