@@ -426,4 +426,161 @@ defmodule PhoenixSpectral.ControllerTest do
       assert Jason.decode!(conn.resp_body)["code"] == "nope"
     end
   end
+
+  describe "PhoenixSpectral.Controller with a declared response content type" do
+    defp dispatch_content_type(action, path_params \\ %{}) do
+      call(TestContentTypeController, action, :get, "/", nil, path_params, %{}, [])
+    end
+
+    test "a declared non-JSON content type sends the body bytes verbatim" do
+      conn = dispatch_content_type(:download_pdf, %{"id" => "1"})
+
+      assert conn.status == 200
+      assert conn.resp_body == <<"%PDF-1.7\n", 0xFF, 0xD8>>
+      assert {"content-type", "application/pdf"} in conn.resp_headers
+    end
+
+    test "other declared response headers are still set from the returned map" do
+      conn = dispatch_content_type(:download_pdf, %{"id" => "1"})
+
+      assert {"content-disposition", ~s(attachment; filename="1.pdf")} in conn.resp_headers
+    end
+
+    test "a response in the same union without a declared content type stays JSON" do
+      conn = dispatch_content_type(:download_pdf, %{"id" => "2"})
+
+      assert conn.status == 404
+      assert {"content-type", "application/json; charset=utf-8"} in conn.resp_headers
+      assert Jason.decode!(conn.resp_body)["message"] == "Not found"
+    end
+
+    test "the content type is taken from the typespec, not from the returned headers map" do
+      conn = dispatch_content_type(:download_xml)
+
+      assert conn.status == 200
+      assert conn.resp_body == "<signature/>"
+      assert {"content-type", "application/xml"} in conn.resp_headers
+    end
+
+    test "an action returning conn keeps the content type it set itself" do
+      conn = dispatch_content_type(:stream_xml)
+
+      assert conn.status == 200
+      assert conn.resp_body == "<streamed/>"
+      assert {"content-type", "application/xml"} in conn.resp_headers
+    end
+
+    test "a declared application/json content type still encodes the body as JSON" do
+      conn = dispatch_content_type(:download_json)
+
+      assert conn.status == 200
+      assert {"content-type", "application/json; charset=utf-8"} in conn.resp_headers
+      assert Jason.decode!(conn.resp_body)["name"] == "Alice"
+    end
+
+    test "media type casing does not change how the body is encoded" do
+      conn = dispatch_content_type(:download_json_mixed_case)
+
+      assert conn.status == 200
+      assert Jason.decode!(conn.resp_body)["name"] == "Alice"
+    end
+
+    test "a nil body type sends an empty body" do
+      conn = dispatch_content_type(:download_empty)
+
+      assert conn.status == 204
+      assert conn.resp_body == ""
+      assert {"content-type", "application/pdf"} in conn.resp_headers
+    end
+
+    test "a body type alias that resolves to nil sends an empty body" do
+      conn = dispatch_content_type(:download_alias_empty)
+
+      assert conn.status == 204
+      assert conn.resp_body == ""
+    end
+
+    test "a body type alias that resolves to nil sends an empty body without a media type" do
+      conn = dispatch_content_type(:download_alias_empty_json)
+
+      assert conn.status == 204
+      assert conn.resp_body == ""
+    end
+
+    test "the content-type entry is matched whatever its casing" do
+      conn = dispatch_content_type(:download_capitalized)
+
+      assert conn.status == 200
+      assert conn.resp_body == "%PDF-1.7\n"
+      assert {"content-type", "application/pdf"} in conn.resp_headers
+    end
+
+    test "a +json media type is encoded as JSON under its own content type" do
+      conn = dispatch_content_type(:download_problem_json)
+
+      assert conn.status == 200
+      assert Jason.decode!(conn.resp_body)["message"] == "Not found"
+      assert {"content-type", "application/problem+json; charset=utf-8"} in conn.resp_headers
+    end
+
+    test "a media type carrying parameters keeps them and still encodes JSON" do
+      conn = dispatch_content_type(:download_json_with_charset)
+
+      assert conn.status == 200
+      assert Jason.decode!(conn.resp_body)["name"] == "Alice"
+      assert {"content-type", "application/json; charset=utf-8"} in conn.resp_headers
+    end
+
+    test "more than one content-type entry raises" do
+      assert_raise ArgumentError, ~r/at most one media type/, fn ->
+        dispatch_content_type(:download_two_content_types)
+      end
+    end
+
+    test "a content-type entry that is not an atom raises" do
+      assert_raise ArgumentError, ~r/must be a literal atom/, fn ->
+        dispatch_content_type(:download_integer_content_type)
+      end
+    end
+
+    test "a parameterized headers alias resolves to the type its argument supplies" do
+      conn = dispatch_content_type(:download_parameterized_headers)
+
+      assert conn.status == 200
+      assert Plug.Conn.get_resp_header(conn, "x-total-count") == ["3"]
+    end
+
+    test "a required content-type entry missing from the returned map raises" do
+      assert_raise RuntimeError, ~r/required response header "content-type"/, fn ->
+        dispatch_content_type(:download_missing_content_type)
+      end
+    end
+
+    test "a returned content-type that does not match the declared media type raises" do
+      assert_raise MatchError, fn ->
+        dispatch_content_type(:download_wrong_content_type)
+      end
+    end
+
+    test "a returned content-type entry is validated but not sent under its declared casing" do
+      conn = dispatch_content_type(:download_capitalized_returned)
+
+      assert conn.status == 200
+      assert conn.resp_body == "%PDF-1.7\n"
+      assert {"content-type", "application/pdf"} in conn.resp_headers
+      assert Plug.Conn.get_resp_header(conn, "Content-Type") == []
+    end
+
+    test "a body returned under a nil body type raises" do
+      assert_raise RuntimeError, ~r/declared body type is nil must return nil/, fn ->
+        dispatch_content_type(:download_empty_with_body)
+      end
+    end
+
+    test "a non-binary body under a non-JSON content type raises" do
+      assert_raise RuntimeError, ~r/must return a binary body/, fn ->
+        dispatch_content_type(:download_not_binary)
+      end
+    end
+  end
 end

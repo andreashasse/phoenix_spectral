@@ -61,6 +61,44 @@ defmodule PhoenixSpectral.Controller do
   human-readable `message`, and `got` — the offending value from the request — when
   one is available. To produce a different shape or status, pass `:on_invalid_request`.
 
+  ## Non-JSON response bodies
+
+  A response's media type is declared as a `content-type` entry in its response headers
+  map, with the media type as a literal atom. The body is then sent verbatim instead of
+  JSON-encoded, and the OpenAPI spec documents it under that media type:
+
+      @spec mandate_pdf(Plug.Conn.t(), %{id: String.t()}, %{}, %{}, nil) ::
+              {200, %{"content-type": :"application/pdf"}, binary()}
+              | {404, %{}, Error.t()}
+      def mandate_pdf(_conn, %{id: id}, _query_params, _headers, _body) do
+        case Documents.pdf(id) do
+          {:ok, pdf} -> {200, %{"content-type": :"application/pdf"}, pdf}
+          :not_found -> {404, %{}, %Error{message: "Not found"}}
+        end
+      end
+
+  The response carries `content-type: application/pdf`, and the entry behaves like every
+  other declared response header: required here, so the action must return it, and the
+  value it returns is validated against the declared media type — returning
+  `:"application/xml"` under this spec raises, as returning an integer for a
+  `String.t()` header does. Declare it `optional(:"content-type")` to leave it out of the
+  returned map; the media type is then taken from the typespec alone, which is also how
+  an action that returns `conn` (below) declares what it sends.
+
+  What the entry does *not* do is travel the ordinary header path: the media type is read
+  from the typespec — that is what makes it available to the OpenAPI generator — the
+  response's `content-type` is set from it rather than from the returned value, and the
+  spec keys the response body under it instead of listing it as a response header.
+
+  Under a non-JSON media type the body must be typed and returned as a `binary()`;
+  anything else raises. A `nil` body type — directly or through an alias that resolves to
+  it — declares no body instead: the response is sent empty, and returning a body under it
+  raises. `application/json` and `*+json` bodies are still encoded by
+  `Spectral.encode`, whatever their casing, and only they get `; charset=utf-8` appended —
+  bake a charset into the atom (`:"text/csv; charset=utf-8"`) when another format needs
+  one. The declaration applies to the one response it is declared on — the 404 above is
+  still JSON.
+
   ## Required vs optional query params and headers
 
   - `%{required(:key) => type}` — missing key returns `400 Bad Request`
@@ -94,14 +132,17 @@ defmodule PhoenixSpectral.Controller do
   An action may also return `conn` directly for streaming, file sends, or any
   other response that cannot be expressed as `{status, headers, body}`. In that case,
   PhoenixSpectral passes the conn through without schema validation — the typespec still
-  documents the endpoint, but the response is the caller's responsibility.
+  documents the endpoint, but the response is the caller's responsibility. Declare the
+  response's media type as a `content-type` entry in the response headers map (see
+  "Non-JSON response bodies" above) so the generated spec describes what the action sends.
 
   ## How It Works
 
   1. Extracts path params, query params, headers, and body from `conn`
   2. Decodes and validates them against the action's typespec via `Spectral.decode`
   3. Calls your handler as `action(conn, path_args, query_params, headers, decoded_body)`
-  4. Encodes the `{status, headers, body}` response via `Spectral.encode`
+  4. Encodes the `{status, headers, body}` response via `Spectral.encode`, or sends it
+     verbatim when the response declares a non-JSON `content-type`
   5. Sends the response on `conn`
   6. On validation failure, returns a 400 response
   """
@@ -109,6 +150,8 @@ defmodule PhoenixSpectral.Controller do
   require Logger
   # Records extracted from deps/spectra/include/spectra_internal.hrl.
   require Record
+
+  @default_content_type "application/json"
 
   Record.defrecordp(
     :sp_function_spec,
@@ -176,7 +219,8 @@ defmodule PhoenixSpectral.Controller do
     {path_args_type, query_params_type, headers_type, body_type} =
       lookup_action_types(type_info, action)
 
-    with {:ok, path_args} <- decode_path_args(conn, type_info, path_args_type, controller, action),
+    with {:ok, path_args} <-
+           decode_path_args(conn, type_info, path_args_type, controller, action),
          {:ok, query_params} <- decode_query_params(conn, type_info, query_params_type),
          {:ok, headers} <- decode_request_headers(conn, type_info, headers_type),
          {:ok, body} <- decode_request_body(conn, type_info, body_type) do
@@ -218,7 +262,7 @@ defmodule PhoenixSpectral.Controller do
       Phoenix.json_library().encode!(%{error: "Bad Request", details: format_errors(errors)})
 
     conn
-    |> Plug.Conn.put_resp_content_type("application/json")
+    |> Plug.Conn.put_resp_content_type(@default_content_type)
     |> Plug.Conn.send_resp(400, body)
   end
 
@@ -331,13 +375,18 @@ defmodule PhoenixSpectral.Controller do
          response_headers,
          response_body
        ) do
-    conn = encode_response_headers(conn, type_info, action, status, response_headers)
-    body_type = lookup_response_body_type(type_info, action, status)
+    headers_type = lookup_response_headers_type(type_info, action, status)
+    content_type = PhoenixSpectral.Internal.response_content_type(headers_type, type_info)
+    fields = PhoenixSpectral.Internal.map_fields(headers_type, type_info)
 
-    case encode_response_body(type_info, body_type, response_body) do
+    conn = encode_response_headers(conn, type_info, action, fields, response_headers)
+    body_type = lookup_response_body_type(type_info, action, status)
+    content_type = content_type || @default_content_type
+
+    case encode_response_body(type_info, body_type, response_body, content_type) do
       {:ok, encoded} ->
         conn
-        |> Plug.Conn.put_resp_content_type("application/json")
+        |> put_response_content_type(content_type)
         |> Plug.Conn.send_resp(status, encoded)
 
       {:error, errors} ->
@@ -346,7 +395,7 @@ defmodule PhoenixSpectral.Controller do
         )
 
         conn
-        |> Plug.Conn.put_resp_content_type("application/json")
+        |> Plug.Conn.put_resp_content_type(@default_content_type)
         |> Plug.Conn.send_resp(
           500,
           ~s({"error":"Internal Server Error","message":"Response encoding failed"})
@@ -381,19 +430,59 @@ defmodule PhoenixSpectral.Controller do
     headers_type
   end
 
-  defp encode_response_body(_type_info, sp_literal(value: nil), nil), do: {:ok, ""}
-
-  defp encode_response_body(type_info, body_type, body) do
-    case Spectral.encode(body, type_info, body_type, :json, [:pre_encoded]) do
-      {:ok, term} -> {:ok, Phoenix.json_library().encode!(term)}
-      {:error, _} = err -> err
+  defp encode_response_body(type_info, body_type, body, content_type) do
+    case PhoenixSpectral.Internal.resolve_body_type(body_type, type_info) do
+      sp_literal(value: nil) -> {:ok, empty_response_body(body)}
+      _other -> encode_present_body(type_info, body_type, body, content_type)
     end
   end
 
-  defp encode_response_headers(conn, type_info, action, status, response_headers) do
-    headers_type = lookup_response_headers_type(type_info, action, status)
-    fields = PhoenixSpectral.Internal.map_fields(headers_type, type_info)
+  defp encode_present_body(type_info, body_type, body, content_type) do
+    if PhoenixSpectral.Internal.json_content_type?(content_type) do
+      case Spectral.encode(body, type_info, body_type, :json, [:pre_encoded]) do
+        {:ok, term} -> {:ok, Phoenix.json_library().encode!(term)}
+        {:error, _} = err -> err
+      end
+    else
+      {:ok, raw_response_body(body, content_type)}
+    end
+  end
 
+  defp empty_response_body(nil), do: ""
+
+  defp empty_response_body(body) do
+    raise "PhoenixSpectral: a response whose declared body type is nil must return nil, " <>
+            "got: #{inspect(body)}"
+  end
+
+  defp raw_response_body(body, _content_type) when is_binary(body), do: body
+
+  defp raw_response_body(body, content_type) do
+    raise "PhoenixSpectral: a response declaring content type #{content_type} must return a " <>
+            "binary body, got: #{inspect(body)}"
+  end
+
+  defp put_response_content_type(conn, content_type) do
+    Plug.Conn.put_resp_content_type(conn, content_type, response_charset(content_type))
+  end
+
+  defp response_charset(content_type) do
+    cond do
+      String.contains?(content_type, ";") -> nil
+      PhoenixSpectral.Internal.json_content_type?(content_type) -> "utf-8"
+      true -> nil
+    end
+  end
+
+  defp put_declared_header(conn, binary_name, encoded) do
+    if PhoenixSpectral.Internal.content_type_header?(binary_name) do
+      conn
+    else
+      Plug.Conn.put_resp_header(conn, binary_name, encoded)
+    end
+  end
+
+  defp encode_response_headers(conn, type_info, action, fields, response_headers) do
     Enum.reduce(fields, conn, fn field, acc ->
       literal_map_field(kind: kind, name: name, binary_name: binary_name, val_type: val_type) =
         field
@@ -401,7 +490,7 @@ defmodule PhoenixSpectral.Controller do
       case Map.fetch(response_headers, name) do
         {:ok, value} ->
           {:ok, encoded} = Spectral.encode(value, type_info, val_type, :binary_string)
-          Plug.Conn.put_resp_header(acc, binary_name, encoded)
+          put_declared_header(acc, binary_name, encoded)
 
         :error when kind == :exact ->
           raise "PhoenixSpectral: required response header #{inspect(binary_name)} declared in " <>
