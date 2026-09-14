@@ -18,6 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Depends on `spectral ~> 0.14.0` and `spectra ~> 0.14.0`, up from the 0.13 line, and accepts every later 0.14.x release of both.
 - **Breaking:** a `content-type` entry in a response headers map is now a media type declaration, not a header. Declaring one whose value is not a literal atom media type — e.g. `%{"content-type": String.t()}`, which 0.6.x documented as a response header and then overwrote with `application/json` at runtime — now raises, in the generator and on dispatch. Drop the entry, or make it a literal atom (`%{"content-type": :"application/pdf"}`). Header names are matched case-insensitively, so `Content-Type` is affected too.
 
 ## [0.6.1] - 2026-06-17
