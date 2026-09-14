@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.7.0] - 2026-09-14
+
 ### Added
 
 - Non-JSON response content types. A `content-type` entry in a response headers map, with the media type as a literal atom (e.g. `{200, %{"content-type": :"application/pdf"}, binary()}`), is now the declaration of that response's media type: the OpenAPI spec emits the body under it instead of `application/json` rather than listing it in the response's `headers` object, the response's `content-type` is set from it, and at runtime a non-JSON body is sent verbatim rather than JSON-encoded (it must be a `binary()`). The entry is validated like the response headers around it — a `required` declaration the action omits raises, as does a returned value that does not match the declared media type — while `optional(:"content-type")` lets the action leave it out and take the media type from the typespec alone. The declaration applies per response, so other statuses in the same union stay JSON, and it also documents actions that return `conn` directly for streaming or file sends.
