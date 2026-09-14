@@ -91,7 +91,9 @@ defmodule PhoenixSpectral.Controller do
   spec keys the response body under it instead of listing it as a response header.
 
   Under a non-JSON media type the body must be typed and returned as a `binary()`;
-  anything else raises. `application/json` and `*+json` bodies are still encoded by
+  anything else raises. A `nil` body type — directly or through an alias that resolves to
+  it — declares no body instead: the response is sent empty, and returning a body under it
+  raises. `application/json` and `*+json` bodies are still encoded by
   `Spectral.encode`, whatever their casing, and only they get `; charset=utf-8` appended —
   bake a charset into the atom (`:"text/csv; charset=utf-8"`) when another format needs
   one. The declaration applies to the one response it is declared on — the 404 above is
@@ -427,14 +429,14 @@ defmodule PhoenixSpectral.Controller do
     headers_type
   end
 
-  defp encode_response_body(_type_info, sp_literal(value: nil), nil, _content_type), do: {:ok, ""}
-
-  defp encode_response_body(_type_info, sp_literal(value: nil), body, _content_type) do
-    raise "PhoenixSpectral: a response whose declared body type is nil must return nil, " <>
-            "got: #{inspect(body)}"
+  defp encode_response_body(type_info, body_type, body, content_type) do
+    case PhoenixSpectral.Internal.resolve_body_type(body_type, type_info) do
+      sp_literal(value: nil) -> {:ok, empty_response_body(body)}
+      _other -> encode_present_body(type_info, body_type, body, content_type)
+    end
   end
 
-  defp encode_response_body(type_info, body_type, body, content_type) do
+  defp encode_present_body(type_info, body_type, body, content_type) do
     if PhoenixSpectral.Internal.json_content_type?(content_type) do
       case Spectral.encode(body, type_info, body_type, :json, [:pre_encoded]) do
         {:ok, term} -> {:ok, Phoenix.json_library().encode!(term)}
@@ -443,6 +445,13 @@ defmodule PhoenixSpectral.Controller do
     else
       {:ok, raw_response_body(body, content_type)}
     end
+  end
+
+  defp empty_response_body(nil), do: ""
+
+  defp empty_response_body(body) do
+    raise "PhoenixSpectral: a response whose declared body type is nil must return nil, " <>
+            "got: #{inspect(body)}"
   end
 
   defp raw_response_body(body, _content_type) when is_binary(body), do: body

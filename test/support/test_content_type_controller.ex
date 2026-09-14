@@ -89,6 +89,20 @@ defmodule TestContentTypeController do
     {204, %{}, nil}
   end
 
+  @type empty :: nil
+
+  @spec download_alias_empty(Plug.Conn.t(), %{}, %{}, %{}, nil) ::
+          {204, %{optional(:"content-type") => :"application/pdf"}, empty()}
+  def download_alias_empty(_conn, _path_args, %{}, _headers, _body) do
+    {204, %{}, nil}
+  end
+
+  @spec download_alias_empty_json(Plug.Conn.t(), %{}, %{}, %{}, nil) ::
+          {204, %{}, empty()}
+  def download_alias_empty_json(_conn, _path_args, %{}, _headers, _body) do
+    {204, %{}, nil}
+  end
+
   @spec download_dynamic_content_type(Plug.Conn.t(), %{}, %{}, %{}, nil) ::
           {200, %{"content-type": String.t()}, binary()}
   def download_dynamic_content_type(_conn, _path_args, %{}, _headers, _body) do

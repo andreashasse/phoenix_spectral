@@ -11,6 +11,9 @@ defmodule TestContentTypeRouter do
   get("/documents/json-charset", TestContentTypeController, :download_json_with_charset)
   get("/documents/tagged", TestContentTypeController, :download_parameterized_headers)
   get("/documents/parameterized", TestContentTypeController, :download_parameterized_body)
+  get("/documents/empty", TestContentTypeController, :download_empty)
+  get("/documents/alias-empty", TestContentTypeController, :download_alias_empty)
+  get("/documents/alias-empty-json", TestContentTypeController, :download_alias_empty_json)
 end
 
 defmodule TestNonBinaryBodyRouter do

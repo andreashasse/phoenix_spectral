@@ -97,7 +97,9 @@ defmodule PhoenixSpectral do
   object — the media type it declares is where the body hangs instead. A
   non-JSON media type is sent verbatim at runtime, so its body type must be `binary()`;
   declaring anything else raises here rather than generating a spec the endpoint cannot
-  serve. See `PhoenixSpectral.Controller` for how such a body is sent.
+  serve. A `nil` body type is the exception — it declares no body, so the response carries
+  no `content` at all, and a type alias that resolves to `nil` is treated the same way.
+  See `PhoenixSpectral.Controller` for how such a body is sent.
   """
   @spec generate_openapi(module(), map()) :: {:ok, iodata()} | {:error, list()}
   def generate_openapi(router, metadata) do
@@ -149,10 +151,22 @@ defmodule PhoenixSpectral do
         PhoenixSpectral.Internal.pop_content_type(headers_type, type_info)
 
       Spectral.OpenAPI.response(status, status_code_description(status))
-      |> add_response_body(controller, action, body_type, content_type)
+      |> add_response_body(
+        controller,
+        action,
+        collapse_nil_body_type(body_type, type_info),
+        content_type
+      )
       |> add_response_headers(controller, header_fields)
       |> then(&Spectral.OpenAPI.add_response(ep, &1))
     end)
+  end
+
+  defp collapse_nil_body_type(body_type, type_info) do
+    case PhoenixSpectral.Internal.resolve_body_type(body_type, type_info) do
+      sp_literal(value: nil) = nil_type -> nil_type
+      _other -> body_type
+    end
   end
 
   defp add_response_body(response, controller, _action, body_type, nil) do

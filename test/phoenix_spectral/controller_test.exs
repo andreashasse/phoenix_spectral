@@ -493,6 +493,20 @@ defmodule PhoenixSpectral.ControllerTest do
       assert {"content-type", "application/pdf"} in conn.resp_headers
     end
 
+    test "a body type alias that resolves to nil sends an empty body" do
+      conn = dispatch_content_type(:download_alias_empty)
+
+      assert conn.status == 204
+      assert conn.resp_body == ""
+    end
+
+    test "a body type alias that resolves to nil sends an empty body without a media type" do
+      conn = dispatch_content_type(:download_alias_empty_json)
+
+      assert conn.status == 204
+      assert conn.resp_body == ""
+    end
+
     test "the content-type entry is matched whatever its casing" do
       conn = dispatch_content_type(:download_capitalized)
 

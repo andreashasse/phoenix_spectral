@@ -417,6 +417,27 @@ defmodule PhoenixSpectralTest do
       assert response["content"]["application/pdf"]["schema"]["type"] == "string"
     end
 
+    test "a nil body type under a declared media type emits no content" do
+      spec = generate_content_type_spec()
+      response = spec["paths"]["/documents/empty"]["get"]["responses"]["204"]
+
+      refute Map.has_key?(response, "content")
+    end
+
+    test "a body type alias that resolves to nil emits no content either" do
+      spec = generate_content_type_spec()
+      response = spec["paths"]["/documents/alias-empty"]["get"]["responses"]["204"]
+
+      refute Map.has_key?(response, "content")
+    end
+
+    test "a body type alias that resolves to nil emits no content without a media type" do
+      spec = generate_content_type_spec()
+      response = spec["paths"]["/documents/alias-empty-json"]["get"]["responses"]["204"]
+
+      refute Map.has_key?(response, "content")
+    end
+
     test "responses in the same union without a declared content type stay JSON" do
       spec = generate_content_type_spec()
       response = spec["paths"]["/documents/{id}/pdf"]["get"]["responses"]["404"]

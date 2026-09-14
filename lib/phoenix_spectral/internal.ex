@@ -89,29 +89,32 @@ defmodule PhoenixSpectral.Internal do
     media_type == @json_content_type or String.ends_with?(media_type, "+json")
   end
 
-  def binary_body_type?(sp_simple_type(type: :binary), _type_info), do: true
-
-  def binary_body_type?(sp_literal(value: nil), _type_info), do: true
-
-  def binary_body_type?(sp_remote_type(mfargs: {String, :t, []}), _type_info), do: true
-
-  def binary_body_type?(sp_user_type_ref() = type_ref, type_info) do
-    {resolved, resolved_type_info} = resolve_type_ref(type_ref, type_info)
-    binary_body_type?(resolved, resolved_type_info)
+  def binary_body_type?(body_type, type_info) do
+    case resolve_body_type(body_type, type_info) do
+      sp_simple_type(type: :binary) -> true
+      sp_literal(value: nil) -> true
+      sp_remote_type(mfargs: {String, :t, []}) -> true
+      _other -> false
+    end
   end
 
-  def binary_body_type?(sp_remote_type(mfargs: {mod, _name, _args}) = type_ref, type_info) do
+  def resolve_body_type(sp_user_type_ref() = type_ref, type_info) do
+    {resolved, resolved_type_info} = resolve_type_ref(type_ref, type_info)
+    resolve_body_type(resolved, resolved_type_info)
+  end
+
+  def resolve_body_type(sp_remote_type(mfargs: {mod, _name, _args}) = type_ref, type_info) do
     Code.ensure_loaded(mod)
 
     if function_exported?(mod, :__spectra_type_info__, 0) do
       {resolved, resolved_type_info} = resolve_type_ref(type_ref, type_info)
-      binary_body_type?(resolved, resolved_type_info)
+      resolve_body_type(resolved, resolved_type_info)
     else
-      false
+      type_ref
     end
   end
 
-  def binary_body_type?(_type, _type_info), do: false
+  def resolve_body_type(type, _type_info), do: type
 
   defp media_type(content_type) do
     content_type
