@@ -219,7 +219,8 @@ defmodule PhoenixSpectral.Controller do
     {path_args_type, query_params_type, headers_type, body_type} =
       lookup_action_types(type_info, action)
 
-    with {:ok, path_args} <- decode_path_args(conn, type_info, path_args_type, controller, action),
+    with {:ok, path_args} <-
+           decode_path_args(conn, type_info, path_args_type, controller, action),
          {:ok, query_params} <- decode_query_params(conn, type_info, query_params_type),
          {:ok, headers} <- decode_request_headers(conn, type_info, headers_type),
          {:ok, body} <- decode_request_body(conn, type_info, body_type) do
