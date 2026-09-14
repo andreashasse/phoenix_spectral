@@ -69,7 +69,7 @@ All records use `Record.extract` from the `.hrl` file directly.
 
 ## Example App
 
-A self-contained Phoenix app lives in `example/`. It demonstrates a real users API (index, show, create, update, delete) with OpenAPI generation, an `x-api-key` required header on write endpoints, a `UserId` type alias with a description annotation, and a `Spectral.Codec.DateTime` codec.
+A self-contained Phoenix app lives in `example/`. It demonstrates a real users API (index, show, create, update, delete) with OpenAPI generation, an `x-api-key` required header on write endpoints, a `UserId` type alias with a description annotation, a `Spectral.Codec.DateTime` codec, and a `text/vcard` download endpoint that declares a non-JSON response media type.
 
 ```bash
 cd example

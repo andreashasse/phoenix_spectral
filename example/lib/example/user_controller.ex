@@ -6,6 +6,11 @@ defmodule Example.UserController do
   @type read_headers :: %{}
   @type write_headers :: %{required(:"x-api-key") => String.t()}
 
+  @type vcard_headers :: %{
+          optional(:"content-type") => :"text/vcard; charset=utf-8",
+          required(:"content-disposition") => String.t()
+        }
+
   # In-memory store for demo purposes
   {:ok, dt, _} = DateTime.from_iso8601("2024-01-15T09:00:00Z")
 
@@ -56,6 +61,29 @@ defmodule Example.UserController do
     }
 
     {201, %{}, new_user}
+  end
+
+  spectral summary: "Download user vCard",
+           description: "The user as a `text/vcard` document. The `content-type` entry in the response headers map declares the media type, so the body is documented as `text/vcard` and sent verbatim instead of JSON-encoded."
+  @spec vcard(Plug.Conn.t(), %{id: UserId.t()}, %{}, read_headers(), nil) ::
+          {200, vcard_headers(), binary()} | {404, %{}, Error.t()}
+  def vcard(_conn, %{id: id}, %{}, _headers, _body) do
+    case Map.get(@users, id) do
+      nil ->
+        {404, %{}, %Error{message: "User #{id} not found"}}
+
+      %User{} = user ->
+        headers = %{"content-disposition": ~s(attachment; filename="#{user.id}.vcf")}
+        {200, headers, vcard_body(user)}
+    end
+  end
+
+  # RFC 6350 requires CRLF line endings.
+  defp vcard_body(%User{} = user) do
+    Enum.join(
+      ["BEGIN:VCARD", "VERSION:4.0", "FN:#{user.name}", "EMAIL:#{user.email}", "END:VCARD", ""],
+      "\r\n"
+    )
   end
 
   spectral summary: "Update user", description: "Updates an existing user by ID"

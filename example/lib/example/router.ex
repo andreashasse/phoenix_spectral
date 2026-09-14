@@ -12,6 +12,8 @@ defmodule Example.Router do
   # Reads are open.
   get("/users", Example.UserController, :index)
   get("/users/:id", Example.UserController, :show)
+  # A non-JSON response body: the media type is declared in the response headers map.
+  get("/users/:id/vcard", Example.UserController, :vcard)
 
   # Writes require a valid Bearer token (this pipeline) AND an x-api-key header
   # (validated from Example.UserController's write_headers typespec).

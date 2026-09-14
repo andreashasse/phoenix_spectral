@@ -381,4 +381,131 @@ defmodule PhoenixSpectralTest do
       assert query_params == []
     end
   end
+
+  describe "generate_openapi/2 with a declared response content type" do
+    defp generate_content_type_spec do
+      {:ok, json} =
+        PhoenixSpectral.generate_openapi(TestContentTypeRouter, %{
+          title: "Test API",
+          version: "1.0.0"
+        })
+
+      Jason.decode!(json)
+    end
+
+    test "a content-type entry in the response headers sets the media type of the body" do
+      spec = generate_content_type_spec()
+      response = spec["paths"]["/documents/{id}/pdf"]["get"]["responses"]["200"]
+
+      assert Map.keys(response["content"]) == ["application/pdf"]
+      assert response["content"]["application/pdf"]["schema"]["type"] == "string"
+    end
+
+    test "the declared content type is not emitted as a response header" do
+      spec = generate_content_type_spec()
+      response = spec["paths"]["/documents/{id}/pdf"]["get"]["responses"]["200"]
+
+      refute Map.has_key?(response["headers"], "content-type")
+      assert response["headers"]["content-disposition"]["required"] == true
+    end
+
+    test "a parameterized body alias resolves before the media type checks its type" do
+      spec = generate_content_type_spec()
+      response = spec["paths"]["/documents/parameterized"]["get"]["responses"]["200"]
+
+      assert Map.keys(response["content"]) == ["application/pdf"]
+      assert response["content"]["application/pdf"]["schema"]["type"] == "string"
+    end
+
+    test "a nil body type under a declared media type emits no content" do
+      spec = generate_content_type_spec()
+      response = spec["paths"]["/documents/empty"]["get"]["responses"]["204"]
+
+      refute Map.has_key?(response, "content")
+    end
+
+    test "a body type alias that resolves to nil emits no content either" do
+      spec = generate_content_type_spec()
+      response = spec["paths"]["/documents/alias-empty"]["get"]["responses"]["204"]
+
+      refute Map.has_key?(response, "content")
+    end
+
+    test "a body type alias that resolves to nil emits no content without a media type" do
+      spec = generate_content_type_spec()
+      response = spec["paths"]["/documents/alias-empty-json"]["get"]["responses"]["204"]
+
+      refute Map.has_key?(response, "content")
+    end
+
+    test "responses in the same union without a declared content type stay JSON" do
+      spec = generate_content_type_spec()
+      response = spec["paths"]["/documents/{id}/pdf"]["get"]["responses"]["404"]
+
+      assert Map.keys(response["content"]) == ["application/json"]
+    end
+
+    test "an optional content-type entry declares the media type too" do
+      spec = generate_content_type_spec()
+      response = spec["paths"]["/documents/xml"]["get"]["responses"]["200"]
+
+      assert Map.keys(response["content"]) == ["application/xml"]
+      refute Map.has_key?(response, "headers")
+    end
+
+    test "a conn-returning action documents the declared media type" do
+      spec = generate_content_type_spec()
+      response = spec["paths"]["/documents/stream"]["get"]["responses"]["200"]
+
+      assert Map.keys(response["content"]) == ["application/xml"]
+    end
+
+    test "an explicit application/json declaration is the default media type" do
+      spec = generate_content_type_spec()
+      response = spec["paths"]["/documents/json"]["get"]["responses"]["200"]
+
+      assert Map.keys(response["content"]) == ["application/json"]
+    end
+
+    test "the content-type entry is matched whatever its casing" do
+      spec = generate_content_type_spec()
+      response = spec["paths"]["/documents/capitalized"]["get"]["responses"]["200"]
+
+      assert Map.keys(response["content"]) == ["application/pdf"]
+      refute Map.has_key?(response, "headers")
+    end
+
+    test "a +json media type is documented under itself" do
+      spec = generate_content_type_spec()
+      response = spec["paths"]["/documents/problem"]["get"]["responses"]["200"]
+
+      assert Map.keys(response["content"]) == ["application/problem+json"]
+      assert response["content"]["application/problem+json"]["schema"]["$ref"] =~ "TestError"
+    end
+
+    test "a media type carrying parameters is documented verbatim" do
+      spec = generate_content_type_spec()
+      response = spec["paths"]["/documents/json-charset"]["get"]["responses"]["200"]
+
+      assert Map.keys(response["content"]) == ["application/json; charset=utf-8"]
+    end
+
+    test "a non-binary body under a non-JSON media type raises" do
+      assert_raise ArgumentError, ~r/must be binary\(\)/, fn ->
+        PhoenixSpectral.generate_openapi(TestNonBinaryBodyRouter, %{
+          title: "Test API",
+          version: "1.0.0"
+        })
+      end
+    end
+
+    test "a content-type entry that is not a literal atom raises" do
+      assert_raise ArgumentError, ~r/must be a literal atom/, fn ->
+        PhoenixSpectral.generate_openapi(TestInvalidContentTypeRouter, %{
+          title: "Test API",
+          version: "1.0.0"
+        })
+      end
+    end
+  end
 end
