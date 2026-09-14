@@ -529,6 +529,13 @@ defmodule PhoenixSpectral.ControllerTest do
       end
     end
 
+    test "a parameterized headers alias resolves to the type its argument supplies" do
+      conn = dispatch_content_type(:download_parameterized_headers)
+
+      assert conn.status == 200
+      assert Plug.Conn.get_resp_header(conn, "x-total-count") == ["3"]
+    end
+
     test "a required content-type entry missing from the returned map raises" do
       assert_raise RuntimeError, ~r/required response header "content-type"/, fn ->
         dispatch_content_type(:download_missing_content_type)

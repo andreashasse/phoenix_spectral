@@ -9,6 +9,8 @@ defmodule TestContentTypeRouter do
   get("/documents/capitalized", TestContentTypeController, :download_capitalized)
   get("/documents/problem", TestContentTypeController, :download_problem_json)
   get("/documents/json-charset", TestContentTypeController, :download_json_with_charset)
+  get("/documents/tagged", TestContentTypeController, :download_parameterized_headers)
+  get("/documents/parameterized", TestContentTypeController, :download_parameterized_body)
 end
 
 defmodule TestNonBinaryBodyRouter do

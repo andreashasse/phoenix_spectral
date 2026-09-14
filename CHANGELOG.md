@@ -11,6 +11,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Non-JSON response content types. A `content-type` entry in a response headers map, with the media type as a literal atom (e.g. `{200, %{"content-type": :"application/pdf"}, binary()}`), is now the declaration of that response's media type: the OpenAPI spec emits the body under it instead of `application/json` rather than listing it in the response's `headers` object, the response's `content-type` is set from it, and at runtime a non-JSON body is sent verbatim rather than JSON-encoded (it must be a `binary()`). The entry is validated like the response headers around it — a `required` declaration the action omits raises, as does a returned value that does not match the declared media type — while `optional(:"content-type")` lets the action leave it out and take the media type from the typespec alone. The declaration applies per response, so other statuses in the same union stay JSON, and it also documents actions that return `conn` directly for streaming or file sends.
 
+### Fixed
+
+- A parameterized type alias (`@type tagged(t) :: %{...}`) used as a response headers map or a response body now resolves. Both resolution sites looked the alias up at arity 0 and crashed with a `MatchError`; type references are now resolved in one place, at the arity the reference carries, with the reference's arguments substituted for the alias's variables.
+
 ### Changed
 
 - **Breaking:** a `content-type` entry in a response headers map is now a media type declaration, not a header. Declaring one whose value is not a literal atom media type — e.g. `%{"content-type": String.t()}`, which 0.6.x documented as a response header and then overwrote with `application/json` at runtime — now raises, in the generator and on dispatch. Drop the entry, or make it a literal atom (`%{"content-type": :"application/pdf"}`). Header names are matched case-insensitively, so `Content-Type` is affected too.

@@ -95,6 +95,21 @@ defmodule TestContentTypeController do
     {200, %{"content-type": "application/pdf"}, "bytes"}
   end
 
+  @type tagged(t) :: %{required(:"x-total-count") => t}
+  @type payload(t) :: t
+
+  @spec download_parameterized_headers(Plug.Conn.t(), %{}, %{}, %{}, nil) ::
+          {200, tagged(integer()), TestUser.t()}
+  def download_parameterized_headers(_conn, _path_args, %{}, _headers, _body) do
+    {200, %{"x-total-count": 3}, %TestUser{id: 1, name: "Alice", email: "alice@example.com"}}
+  end
+
+  @spec download_parameterized_body(Plug.Conn.t(), %{}, %{}, %{}, nil) ::
+          {200, %{optional(:"content-type") => :"application/pdf"}, payload(binary())}
+  def download_parameterized_body(_conn, _path_args, %{}, _headers, _body) do
+    {200, %{}, "%PDF-1.7\n"}
+  end
+
   @spec download_missing_content_type(Plug.Conn.t(), %{}, %{}, %{}, nil) ::
           {200, %{required(:"content-type") => :"application/pdf"}, binary()}
   def download_missing_content_type(_conn, _path_args, %{}, _headers, _body) do

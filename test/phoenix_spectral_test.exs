@@ -409,6 +409,14 @@ defmodule PhoenixSpectralTest do
       assert response["headers"]["content-disposition"]["required"] == true
     end
 
+    test "a parameterized body alias resolves before the media type checks its type" do
+      spec = generate_content_type_spec()
+      response = spec["paths"]["/documents/parameterized"]["get"]["responses"]["200"]
+
+      assert Map.keys(response["content"]) == ["application/pdf"]
+      assert response["content"]["application/pdf"]["schema"]["type"] == "string"
+    end
+
     test "responses in the same union without a declared content type stay JSON" do
       spec = generate_content_type_spec()
       response = spec["paths"]["/documents/{id}/pdf"]["get"]["responses"]["404"]

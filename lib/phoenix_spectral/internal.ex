@@ -36,18 +36,29 @@ defmodule PhoenixSpectral.Internal do
   @content_type_header "content-type"
   @json_content_type "application/json"
 
-  def map_fields(sp_user_type_ref(type_name: name), type_info) do
-    {:ok, resolved} = Spectral.TypeInfo.find_type(type_info, name, 0)
-    map_fields(resolved, type_info)
-  end
-
-  def map_fields(sp_remote_type(mfargs: {mod, name, args}), _type_info) do
-    remote_type_info = mod.__spectra_type_info__()
-    {:ok, resolved} = Spectral.TypeInfo.find_type(remote_type_info, name, length(args))
-    map_fields(resolved, remote_type_info)
-  end
-
   def map_fields(sp_map(fields: fields), _type_info), do: fields
+
+  def map_fields(type_ref, type_info) do
+    {resolved, resolved_type_info} = resolve_type_ref(type_ref, type_info)
+    map_fields(resolved, resolved_type_info)
+  end
+
+  # The type info travels with the resolved type because a remote reference resolves in
+  # its own module's type info. apply_args/3 substitutes the reference's arguments for
+  # the alias's variables, and returns the type untouched for an arity-0 alias.
+  def resolve_type_ref(
+        sp_user_type_ref(type_name: name, arity: arity, variables: variables),
+        type_info
+      ) do
+    {:ok, type} = Spectral.TypeInfo.find_type(type_info, name, arity)
+    {:spectra_util.apply_args(type_info, type, variables), type_info}
+  end
+
+  def resolve_type_ref(sp_remote_type(mfargs: {mod, name, args}), _type_info) do
+    remote_type_info = mod.__spectra_type_info__()
+    {:ok, type} = Spectral.TypeInfo.find_type(remote_type_info, name, length(args))
+    {:spectra_util.apply_args(remote_type_info, type, args), remote_type_info}
+  end
 
   def pop_content_type(headers_type, type_info) do
     case Enum.split_with(map_fields(headers_type, type_info), &content_type_field?/1) do
@@ -84,18 +95,17 @@ defmodule PhoenixSpectral.Internal do
 
   def binary_body_type?(sp_remote_type(mfargs: {String, :t, []}), _type_info), do: true
 
-  def binary_body_type?(sp_user_type_ref(type_name: name), type_info) do
-    {:ok, resolved} = Spectral.TypeInfo.find_type(type_info, name, 0)
-    binary_body_type?(resolved, type_info)
+  def binary_body_type?(sp_user_type_ref() = type_ref, type_info) do
+    {resolved, resolved_type_info} = resolve_type_ref(type_ref, type_info)
+    binary_body_type?(resolved, resolved_type_info)
   end
 
-  def binary_body_type?(sp_remote_type(mfargs: {mod, name, args}), _type_info) do
+  def binary_body_type?(sp_remote_type(mfargs: {mod, _name, _args}) = type_ref, type_info) do
     Code.ensure_loaded(mod)
 
     if function_exported?(mod, :__spectra_type_info__, 0) do
-      remote_type_info = mod.__spectra_type_info__()
-      {:ok, resolved} = Spectral.TypeInfo.find_type(remote_type_info, name, length(args))
-      binary_body_type?(resolved, remote_type_info)
+      {resolved, resolved_type_info} = resolve_type_ref(type_ref, type_info)
+      binary_body_type?(resolved, resolved_type_info)
     else
       false
     end
