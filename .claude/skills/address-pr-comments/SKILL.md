@@ -1,6 +1,7 @@
 ---
 name: address-pr-comments
 description: Review and address open (unresolved) GitHub PR review comments. Assesses relevance, correctness, and whether to implement in this PR or as a follow-up. For bugs, writes a failing test first. For design issues, considers updating CLAUDE.md.
+disable-model-invocation: true
 ---
 
 # Address PR Comments Skill
