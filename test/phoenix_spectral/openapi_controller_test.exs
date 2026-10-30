@@ -156,7 +156,7 @@ defmodule PhoenixSpectral.OpenAPIControllerTest do
       conn = conn(:get, "/openapi") |> TestOpenAPIControllerRichMetadata.show(%{})
 
       body = Jason.decode!(conn.resp_body)
-      assert length(body["servers"]) == 2
+      assert [_, _] = body["servers"]
       assert hd(body["servers"])["url"] == "https://api.example.com"
     end
 

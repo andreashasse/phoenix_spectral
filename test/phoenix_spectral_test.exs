@@ -232,7 +232,7 @@ defmodule PhoenixSpectralTest do
           [:pre_encoded]
         )
 
-      assert length(spec["servers"]) == 2
+      assert [_, _] = spec["servers"]
       assert hd(spec["servers"])["url"] == "https://api.example.com"
       assert hd(spec["servers"])["description"] == "Production"
     end
