@@ -58,6 +58,22 @@ defmodule PhoenixSpectral.WebhookTest do
       assert ref == "#/components/schemas/TestUser"
     end
 
+    test "a response can use a status code range" do
+      spec =
+        generate([
+          %{
+            name: "userCreated",
+            method: :post,
+            module: TestUser,
+            payload: {:type, :t, 0},
+            responses: [{"2XX", "Acknowledged"}]
+          }
+        ])
+
+      assert %{"2XX" => %{"description" => "Acknowledged"}} =
+               spec["webhooks"]["userCreated"]["post"]["responses"]
+    end
+
     test "responses and doc are optional" do
       spec =
         generate([
@@ -141,6 +157,78 @@ defmodule PhoenixSpectral.WebhookTest do
 
       assert is_map(spec)
       refute Map.has_key?(spec, "webhooks")
+    end
+  end
+
+  describe "webhook :headers" do
+    defp headers_webhook(headers) do
+      %{
+        name: "userCreated",
+        method: :post,
+        module: TestWebhookEvents,
+        payload: {:type, :user_created, 0},
+        headers: headers
+      }
+    end
+
+    test "each map field becomes a header parameter, required when the key is required" do
+      spec = generate([headers_webhook({:type, :webhook_headers, 0})])
+
+      parameters = spec["webhooks"]["userCreated"]["post"]["parameters"]
+
+      assert Enum.sort_by(parameters, & &1["name"]) == [
+               %{
+                 "name" => "x-event-id",
+                 "in" => "header",
+                 "required" => false,
+                 "schema" => %{"type" => "integer", "minimum" => 0}
+               },
+               %{
+                 "name" => "x-signature",
+                 "in" => "header",
+                 "required" => true,
+                 "schema" => %{"type" => "string"}
+               }
+             ]
+    end
+
+    test "an entry without :headers has no parameters" do
+      spec =
+        generate([
+          %{
+            name: "userCreated",
+            method: :post,
+            module: TestWebhookEvents,
+            payload: {:type, :user_created, 0}
+          }
+        ])
+
+      refute Map.has_key?(spec["webhooks"]["userCreated"]["post"], "parameters")
+    end
+
+    test "crashes when the :headers type is not a map type" do
+      assert_raise FunctionClauseError, fn ->
+        generate([headers_webhook({:type, :not_a_map, 0})])
+      end
+    end
+
+    test "names the module and type when the :headers type does not exist" do
+      assert_raise ArgumentError, ~r/:no_such_type\/0 not found in TestWebhookEvents/, fn ->
+        generate([headers_webhook({:type, :no_such_type, 0})])
+      end
+    end
+
+    test "names the module and type when the :payload type does not exist" do
+      assert_raise ArgumentError, ~r/:no_such_type\/0 not found in TestUser/, fn ->
+        generate([
+          %{
+            name: "userCreated",
+            method: :post,
+            module: TestUser,
+            payload: {:type, :no_such_type, 0}
+          }
+        ])
+      end
     end
   end
 

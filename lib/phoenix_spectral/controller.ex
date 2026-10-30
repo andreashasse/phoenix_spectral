@@ -49,9 +49,9 @@ defmodule PhoenixSpectral.Controller do
         "error": "Bad Request",
         "details": [
           {
-            "type": "no_match",
+            "type": "type_mismatch",
             "location": ["currency"],
-            "message": "no_match at currency",
+            "message": "type_mismatch at currency",
             "got": "USD"
           }
         ]

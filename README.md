@@ -11,7 +11,7 @@ Add `phoenix_spectral` to your dependencies in `mix.exs`:
 ```elixir
 def deps do
   [
-    {:phoenix_spectral, "~> 0.8.0"}
+    {:phoenix_spectral, "~> 0.9.0"}
   ]
 end
 ```
@@ -198,7 +198,8 @@ Each entry is a map:
 | `:method` | yes | HTTP method your API uses when calling the consumer, usually `:post` |
 | `:module` | yes | Module owning the payload type |
 | `:payload` | yes | Payload type reference, e.g. `{:type, :t, 0}` |
-| `:responses` | no | List of `{status_code, description}` tuples. Defaults to none — OpenAPI 3.1 does not require responses |
+| `:headers` | no | Reference to a map type in `:module` listing the headers your API sends, e.g. `{:type, :webhook_headers, 0}`. Each field becomes a header parameter, required when its key is `required(...)`. A type that is not a map raises |
+| `:responses` | no | List of `{status_code, description}` tuples. `status_code` is an integer or a range from `"1XX"` to `"5XX"`. Defaults to none — OpenAPI 3.1 does not require responses |
 | `:doc` | no | Operation documentation map: `:summary`, `:description`, `:operationId`, `:tags`, `:deprecated`, `:externalDocs`, `:security` |
 
 Or directly:
@@ -213,7 +214,17 @@ Notes:
 
 - Payload types share `components/schemas` with your routes, so a type used by both is emitted once.
 - One event name can carry several methods; a webhook value is a Path Item Object, exactly like a `paths` entry.
-- Header parameters (an `X-Signature` on the outgoing request, say) are not exposed through the declarative entry yet. Build the webhook with `Spectral.OpenAPI` directly if you need them.
+- Headers your API sends with each call, such as a signature and an event id, go in `:headers`:
+
+  ```elixir
+  # in MyApp.Events
+  @type webhook_headers :: %{
+          required(:"x-signature") => String.t(),
+          optional(:"x-event-id") => String.t()
+        }
+  ```
+
+  and `headers: {:type, :webhook_headers, 0}` in the entry.
 - A global `:security` requirement is emitted at the top level and therefore applies to webhook operations too, per OpenAPI — even though its meaning is inverted there, since it would describe your API authenticating *to* the consumer. Give the webhook its own `:security` inside `:doc` to override that, or `[]` to opt out entirely. This is how an API authenticates inbound calls one way and signs its outgoing webhooks another:
 
 ```elixir
