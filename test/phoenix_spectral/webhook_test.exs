@@ -195,6 +195,25 @@ defmodule PhoenixSpectral.WebhookTest do
         generate([headers_webhook({:type, :not_a_map, 0})])
       end
     end
+
+    test "names the module and type when the :headers type does not exist" do
+      assert_raise ArgumentError, ~r/:no_such_type\/0 not found in TestWebhookEvents/, fn ->
+        generate([headers_webhook({:type, :no_such_type, 0})])
+      end
+    end
+
+    test "names the module and type when the :payload type does not exist" do
+      assert_raise ArgumentError, ~r/:no_such_type\/0 not found in TestUser/, fn ->
+        generate([
+          %{
+            name: "userCreated",
+            method: :post,
+            module: TestUser,
+            payload: {:type, :no_such_type, 0}
+          }
+        ])
+      end
+    end
   end
 
   describe "per-webhook security" do

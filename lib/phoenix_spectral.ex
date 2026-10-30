@@ -210,17 +210,30 @@ defmodule PhoenixSpectral do
       unknown -> raise ArgumentError, "unknown webhook key(s) #{inspect(unknown)}"
     end
 
+    type_info = module.__spectra_type_info__()
+    find_webhook_type!(module, type_info, payload)
+
     Spectral.OpenAPI.webhook(name, method, Map.get(webhook, :doc, %{}))
     |> Spectral.OpenAPI.with_request_body(module, payload)
-    |> add_webhook_headers(module, Map.get(webhook, :headers))
+    |> add_webhook_headers(module, type_info, Map.get(webhook, :headers))
     |> add_webhook_responses(Map.get(webhook, :responses, []))
   end
 
-  defp add_webhook_headers(webhook, _module, nil), do: webhook
+  defp add_webhook_headers(webhook, _module, _type_info, nil), do: webhook
 
-  defp add_webhook_headers(webhook, module, {:type, name, arity}) do
-    {:ok, headers_type} = Spectral.TypeInfo.find_type(module.__spectra_type_info__(), name, arity)
-    add_header_parameters(webhook, module, headers_type)
+  defp add_webhook_headers(webhook, module, type_info, type_ref) do
+    headers_type = find_webhook_type!(module, type_info, type_ref)
+    add_header_parameters(webhook, module, type_info, headers_type)
+  end
+
+  defp find_webhook_type!(module, type_info, {:type, name, arity}) do
+    case Spectral.TypeInfo.find_type(type_info, name, arity) do
+      {:ok, type} ->
+        type
+
+      :error ->
+        raise ArgumentError, "type #{inspect(name)}/#{arity} not found in #{inspect(module)}"
+    end
   end
 
   defp add_webhook_responses(webhook, responses) do
@@ -240,7 +253,7 @@ defmodule PhoenixSpectral do
 
     Spectral.OpenAPI.endpoint(verb, phoenix_path_to_openapi_path(path), controller, action, 5)
     |> maybe_add_request_body(verb, controller, body_type)
-    |> add_header_parameters(controller, headers_type)
+    |> add_header_parameters(controller, controller.__spectra_type_info__(), headers_type)
     |> add_query_parameters(controller, query_params_type)
     |> add_path_parameters(controller, path_args_type)
     |> add_responses(controller, action, extract_responses(return_type))
@@ -337,8 +350,7 @@ defmodule PhoenixSpectral do
     [{status, headers_type, body_type}]
   end
 
-  defp add_header_parameters(endpoint, module, headers_type) do
-    type_info = module.__spectra_type_info__()
+  defp add_header_parameters(endpoint, module, type_info, headers_type) do
     fields = PhoenixSpectral.Internal.map_fields(headers_type, type_info)
 
     Enum.reduce(fields, endpoint, fn field, ep ->
