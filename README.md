@@ -165,6 +165,8 @@ end
 
 ## Webhooks
 
+> **Note:** The author of this library has not reviewed the webhook support. Treat it as experimental.
+
 OpenAPI 3.1 [webhooks](https://spec.openapis.org/oas/v3.1.0#oasWebhooks) describe requests your API *sends out*, rather than requests it receives. They have no route in the router, so they are declared explicitly — as the `:webhooks` option, either on `PhoenixSpectral.OpenAPIController` or on `PhoenixSpectral.generate_openapi/3`.
 
 A webhook is keyed by an **event name** instead of a URL path, because the consumer owns the URL your API calls. The direction is inverted relative to a route: the payload is what your API *sends*, and the responses describe what the consumer is expected to *return*.

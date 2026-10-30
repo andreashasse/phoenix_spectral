@@ -43,6 +43,19 @@ defmodule PhoenixSpectral do
     Record.extract(:sp_union, from_lib: "spectra/include/spectra_internal.hrl")
   )
 
+  @type webhook :: %{
+          required(:name) => binary(),
+          required(:method) => :spectra_openapi.http_method(),
+          required(:module) => module(),
+          required(:payload) => {:type, atom(), arity()},
+          optional(:responses) => [{:spectra_openapi.http_status_code(), binary()}],
+          optional(:doc) => :spectra_openapi.endpoint_doc()
+        }
+
+  @type option :: {:webhooks, [webhook()]} | :pre_encoded | {:pre_encoded, boolean()}
+
+  @webhook_keys [:name, :method, :module, :payload, :responses, :doc]
+
   @doc """
   Generates an OpenAPI 3.1 specification from a Phoenix router module.
 
@@ -115,22 +128,12 @@ defmodule PhoenixSpectral do
     [`webhooks`](https://spec.openapis.org/oas/v3.1.0#oasWebhooks) key (see below)
   - `:pre_encoded` — return a map instead of iodata, skipping JSON encoding
 
-  Anything else raises. Options are otherwise passed through to Spectra, which
-  ignores keys it does not recognize, so an unrecognized key here would silently
-  drop whatever it was meant to configure.
+  Anything else raises.
 
   ## Webhooks
 
-  Webhooks describe requests your API *sends out*, rather than requests it
-  receives. They have no route in the router, so they are declared explicitly.
-  Their payload types share `components/schemas` with the routes.
-
-  A webhook is keyed by an event name instead of a URL path, because the consumer
-  owns the URL your API calls. The direction is inverted relative to a route: the
-  payload is what your API *sends*, and the responses describe what the consumer
-  is expected to *return*.
-
-  Each entry is a map:
+  Webhooks describe requests your API sends out, so they have no route and are
+  declared explicitly. See the README for details. Each entry is a map:
 
   - `:name` — event name the webhook is keyed by (required, e.g. `"userCreated"`)
   - `:method` — HTTP method your API uses when calling the consumer (required, usually `:post`)
@@ -139,7 +142,7 @@ defmodule PhoenixSpectral do
   - `:responses` — list of `{status_code, description}` tuples (optional, defaults to none)
   - `:doc` — operation documentation map, as for `Spectral.OpenAPI.endpoint/3` (optional)
 
-  A malformed entry raises rather than producing a broken spec.
+  A malformed entry or an unknown key raises.
 
   ## Example
 
@@ -156,7 +159,7 @@ defmodule PhoenixSpectral do
         ]
       )
   """
-  @spec generate_openapi(module(), map(), keyword() | [:pre_encoded]) ::
+  @spec generate_openapi(module(), map(), [option()]) ::
           {:ok, iodata() | map()} | {:error, list()}
   def generate_openapi(router, metadata, options) when is_list(options) do
     {webhooks, encode_options} = split_options(options)
@@ -175,13 +178,7 @@ defmodule PhoenixSpectral do
     )
   end
 
-  # Spectra reads options with proplists:get_value/3, which ignores keys it does
-  # not know. Carrying :webhooks in that same list would therefore turn a typo
-  # into every webhook silently vanishing from the spec, so anything
-  # unrecognized raises here instead.
-  #
-  # Keyword functions cannot be used to split the list: it legitimately mixes
-  # bare atoms (:pre_encoded) with tuples, and Keyword.pop/2 raises on that.
+  # Keyword functions cannot split this list: it mixes bare atoms with tuples.
   defp split_options(options) do
     {webhook_opts, rest} = Enum.split_with(options, &match?({:webhooks, _}, &1))
 
@@ -204,6 +201,11 @@ defmodule PhoenixSpectral do
   defp encode_option?(_other), do: false
 
   defp to_webhook(%{name: name, method: method, module: module, payload: payload} = webhook) do
+    case Map.keys(webhook) -- @webhook_keys do
+      [] -> :ok
+      unknown -> raise ArgumentError, "unknown webhook key(s) #{inspect(unknown)}"
+    end
+
     Spectral.OpenAPI.webhook(name, method, Map.get(webhook, :doc, %{}))
     |> Spectral.OpenAPI.with_request_body(module, payload)
     |> add_webhook_responses(Map.get(webhook, :responses, []))

@@ -113,7 +113,7 @@ defmodule PhoenixSpectral.OpenAPIController do
   end
 
   @doc false
-  def fetch_json(controller, router, metadata, webhooks \\ []) do
+  def fetch_json(controller, router, metadata, webhooks) do
     key = {__MODULE__, controller}
 
     case :persistent_term.get(key, :not_cached) do

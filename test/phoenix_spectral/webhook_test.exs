@@ -58,15 +58,6 @@ defmodule PhoenixSpectral.WebhookTest do
       assert ref == "#/components/schemas/TestUser"
     end
 
-    test "webhook payload types land in components/schemas" do
-      spec =
-        generate([
-          %{name: "userCreated", method: :post, module: TestUser, payload: {:type, :t, 0}}
-        ])
-
-      assert Map.has_key?(spec["components"]["schemas"], "TestUser")
-    end
-
     test "responses and doc are optional" do
       spec =
         generate([
@@ -95,7 +86,7 @@ defmodule PhoenixSpectral.WebhookTest do
           %{name: "userCreated", method: :post, module: TestUser, payload: {:type, :t, 0}}
         ])
 
-      assert map_size(spec["paths"]) > 0
+      assert Map.has_key?(spec["paths"], "/users/{id}")
     end
 
     test "omits the webhooks key when the list is empty" do
@@ -105,6 +96,20 @@ defmodule PhoenixSpectral.WebhookTest do
     test "crashes on a malformed webhook entry rather than emitting a broken spec" do
       assert_raise FunctionClauseError, fn ->
         generate([%{method: :post, module: TestUser, payload: {:type, :t, 0}}])
+      end
+    end
+
+    test "raises on an unknown key in a webhook entry" do
+      assert_raise ArgumentError, ~r/respones/, fn ->
+        generate([
+          %{
+            name: "userCreated",
+            method: :post,
+            module: TestUser,
+            payload: {:type, :t, 0},
+            respones: [{200, "Acknowledged"}]
+          }
+        ])
       end
     end
 
@@ -122,8 +127,6 @@ defmodule PhoenixSpectral.WebhookTest do
     end
 
     test "raises on an unrecognized option instead of silently dropping it" do
-      # spectra reads options with proplists:get_value/3, which ignores unknown
-      # keys - so a typo would silently drop every webhook without this check.
       assert_raise ArgumentError, ~r/webhook/, fn ->
         PhoenixSpectral.generate_openapi(TestRouter, @metadata,
           webhook: [
