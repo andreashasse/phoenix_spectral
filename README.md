@@ -199,7 +199,7 @@ Each entry is a map:
 | `:module` | yes | Module owning the payload type |
 | `:payload` | yes | Payload type reference, e.g. `{:type, :t, 0}` |
 | `:headers` | no | Reference to a map type in `:module` listing the headers your API sends, e.g. `{:type, :webhook_headers, 0}`. Each field becomes a header parameter, required when its key is `required(...)`. A type that is not a map raises |
-| `:responses` | no | List of `{status_code, description}` tuples. Defaults to none — OpenAPI 3.1 does not require responses |
+| `:responses` | no | List of `{status_code, description}` tuples. `status_code` is an integer or a range from `"1XX"` to `"5XX"`. Defaults to none — OpenAPI 3.1 does not require responses |
 | `:doc` | no | Operation documentation map: `:summary`, `:description`, `:operationId`, `:tags`, `:deprecated`, `:externalDocs`, `:security` |
 
 Or directly:

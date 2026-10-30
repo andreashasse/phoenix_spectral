@@ -58,6 +58,22 @@ defmodule PhoenixSpectral.WebhookTest do
       assert ref == "#/components/schemas/TestUser"
     end
 
+    test "a response can use a status code range" do
+      spec =
+        generate([
+          %{
+            name: "userCreated",
+            method: :post,
+            module: TestUser,
+            payload: {:type, :t, 0},
+            responses: [{"2XX", "Acknowledged"}]
+          }
+        ])
+
+      assert %{"2XX" => %{"description" => "Acknowledged"}} =
+               spec["webhooks"]["userCreated"]["post"]["responses"]
+    end
+
     test "responses and doc are optional" do
       spec =
         generate([

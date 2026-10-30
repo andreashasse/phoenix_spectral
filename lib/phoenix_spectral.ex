@@ -143,7 +143,8 @@ defmodule PhoenixSpectral do
   - `:headers` — reference to a map type in `:module` whose fields are the headers your
     API sends (optional, e.g. `{:type, :webhook_headers, 0}`). Each field becomes a header
     parameter, required when its key is `required(...)`
-  - `:responses` — list of `{status_code, description}` tuples (optional, defaults to none)
+  - `:responses` — list of `{status_code, description}` tuples, where `status_code` is an
+    integer or a range from `"1XX"` to `"5XX"` (optional, defaults to none)
   - `:doc` — operation documentation map, as for `Spectral.OpenAPI.endpoint/3` (optional)
 
   A malformed entry or an unknown key raises.
