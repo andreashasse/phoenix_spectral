@@ -43,6 +43,19 @@ defmodule PhoenixSpectral do
     Record.extract(:sp_union, from_lib: "spectra/include/spectra_internal.hrl")
   )
 
+  @type webhook :: %{
+          required(:name) => binary(),
+          required(:method) => :spectra_openapi.http_method(),
+          required(:module) => module(),
+          required(:payload) => {:type, atom(), arity()},
+          optional(:responses) => [{:spectra_openapi.http_status_code(), binary()}],
+          optional(:doc) => :spectra_openapi.endpoint_doc()
+        }
+
+  @type option :: {:webhooks, [webhook()]} | :pre_encoded | {:pre_encoded, boolean()}
+
+  @webhook_keys [:name, :method, :module, :payload, :responses, :doc]
+
   @doc """
   Generates an OpenAPI 3.1 specification from a Phoenix router module.
 
@@ -106,16 +119,102 @@ defmodule PhoenixSpectral do
     generate_openapi(router, metadata, [])
   end
 
-  @spec generate_openapi(module(), map(), [:pre_encoded]) ::
+  @doc """
+  Generates an OpenAPI 3.1 specification, with options.
+
+  ## Options
+
+  - `:webhooks` — list of webhook declarations, emitted under the spec's top-level
+    [`webhooks`](https://spec.openapis.org/oas/v3.1.0#oasWebhooks) key (see below)
+  - `:pre_encoded` — return a map instead of iodata, skipping JSON encoding
+
+  Anything else raises.
+
+  ## Webhooks
+
+  Webhooks describe requests your API sends out, so they have no route and are
+  declared explicitly. See the README for details. Each entry is a map:
+
+  - `:name` — event name the webhook is keyed by (required, e.g. `"userCreated"`)
+  - `:method` — HTTP method your API uses when calling the consumer (required, usually `:post`)
+  - `:module` — module owning the payload type (required)
+  - `:payload` — the payload type reference (required, e.g. `{:type, :t, 0}`)
+  - `:responses` — list of `{status_code, description}` tuples (optional, defaults to none)
+  - `:doc` — operation documentation map, as for `Spectral.OpenAPI.endpoint/3` (optional)
+
+  A malformed entry or an unknown key raises.
+
+  ## Example
+
+      PhoenixSpectral.generate_openapi(MyAppWeb.Router, metadata,
+        webhooks: [
+          %{
+            name: "userCreated",
+            method: :post,
+            module: MyApp.Events,
+            payload: {:type, :user_created, 0},
+            responses: [{200, "Acknowledged"}],
+            doc: %{summary: "Sent when a user is created"}
+          }
+        ]
+      )
+  """
+  @spec generate_openapi(module(), map(), [option()]) ::
           {:ok, iodata() | map()} | {:error, list()}
-  def generate_openapi(router, metadata, options) do
+  def generate_openapi(router, metadata, options) when is_list(options) do
+    {webhooks, encode_options} = split_options(options)
+
     endpoints =
       router
       |> Phoenix.Router.routes()
       |> Enum.filter(&api_route?/1)
       |> Enum.map(&route_to_endpoint/1)
 
-    :spectra_openapi.endpoints_to_openapi(metadata, endpoints, options)
+    :spectra_openapi.to_openapi(
+      metadata,
+      endpoints,
+      Enum.map(webhooks, &to_webhook/1),
+      encode_options
+    )
+  end
+
+  # Keyword functions cannot split this list: it mixes bare atoms with tuples.
+  defp split_options(options) do
+    {webhook_opts, rest} = Enum.split_with(options, &match?({:webhooks, _}, &1))
+
+    case Enum.reject(rest, &encode_option?/1) do
+      [] ->
+        :ok
+
+      unknown ->
+        raise ArgumentError,
+              "unrecognized option(s) #{inspect(unknown)} passed to " <>
+                "PhoenixSpectral.generate_openapi/3. Supported options are " <>
+                ":webhooks and :pre_encoded."
+    end
+
+    {Enum.flat_map(webhook_opts, fn {:webhooks, webhooks} -> webhooks end), rest}
+  end
+
+  defp encode_option?(:pre_encoded), do: true
+  defp encode_option?({:pre_encoded, value}) when is_boolean(value), do: true
+  defp encode_option?(_other), do: false
+
+  defp to_webhook(%{name: name, method: method, module: module, payload: payload} = webhook) do
+    case Map.keys(webhook) -- @webhook_keys do
+      [] -> :ok
+      unknown -> raise ArgumentError, "unknown webhook key(s) #{inspect(unknown)}"
+    end
+
+    Spectral.OpenAPI.webhook(name, method, Map.get(webhook, :doc, %{}))
+    |> Spectral.OpenAPI.with_request_body(module, payload)
+    |> add_webhook_responses(Map.get(webhook, :responses, []))
+  end
+
+  defp add_webhook_responses(webhook, responses) do
+    Enum.reduce(responses, webhook, fn {status, description}, acc ->
+      Spectral.OpenAPI.add_response(acc, Spectral.OpenAPI.response(status, description))
+    end)
   end
 
   defp api_route?(%{plug: plug}) do
