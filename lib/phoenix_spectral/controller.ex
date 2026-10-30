@@ -147,6 +147,8 @@ defmodule PhoenixSpectral.Controller do
   6. On validation failure, returns a 400 response
   """
 
+  alias Plug.Conn
+
   require Logger
   # Records extracted from deps/spectra/include/spectra_internal.hrl.
   require Record
@@ -225,7 +227,7 @@ defmodule PhoenixSpectral.Controller do
          {:ok, headers} <- decode_request_headers(conn, type_info, headers_type),
          {:ok, body} <- decode_request_body(conn, type_info, body_type) do
       case apply(controller, action, [conn, path_args, query_params, headers, body]) do
-        %Plug.Conn{} = returned_conn ->
+        %Conn{} = returned_conn ->
           returned_conn
 
         {status, response_headers, response_body} when is_integer(status) ->
@@ -262,14 +264,14 @@ defmodule PhoenixSpectral.Controller do
       Phoenix.json_library().encode!(%{error: "Bad Request", details: format_errors(errors)})
 
     conn
-    |> Plug.Conn.put_resp_content_type(@default_content_type)
-    |> Plug.Conn.send_resp(400, body)
+    |> Conn.put_resp_content_type(@default_content_type)
+    |> Conn.send_resp(400, body)
   end
 
   defp decode_request_body(conn, type_info, body_type) do
     raw_body =
       case conn.body_params do
-        %Plug.Conn.Unfetched{} -> nil
+        %Conn.Unfetched{} -> nil
         params when map_size(params) == 0 -> nil
         params -> params
       end
@@ -313,8 +315,8 @@ defmodule PhoenixSpectral.Controller do
 
     raw_query_params =
       case conn.query_params do
-        %Plug.Conn.Unfetched{} ->
-          %{query_params: params} = Plug.Conn.fetch_query_params(conn)
+        %Conn.Unfetched{} ->
+          %{query_params: params} = Conn.fetch_query_params(conn)
           params
 
         params ->
@@ -387,7 +389,7 @@ defmodule PhoenixSpectral.Controller do
       {:ok, encoded} ->
         conn
         |> put_response_content_type(content_type)
-        |> Plug.Conn.send_resp(status, encoded)
+        |> Conn.send_resp(status, encoded)
 
       {:error, errors} ->
         Logger.error(
@@ -395,8 +397,8 @@ defmodule PhoenixSpectral.Controller do
         )
 
         conn
-        |> Plug.Conn.put_resp_content_type(@default_content_type)
-        |> Plug.Conn.send_resp(
+        |> Conn.put_resp_content_type(@default_content_type)
+        |> Conn.send_resp(
           500,
           ~s({"error":"Internal Server Error","message":"Response encoding failed"})
         )
@@ -463,7 +465,7 @@ defmodule PhoenixSpectral.Controller do
   end
 
   defp put_response_content_type(conn, content_type) do
-    Plug.Conn.put_resp_content_type(conn, content_type, response_charset(content_type))
+    Conn.put_resp_content_type(conn, content_type, response_charset(content_type))
   end
 
   defp response_charset(content_type) do
@@ -478,7 +480,7 @@ defmodule PhoenixSpectral.Controller do
     if PhoenixSpectral.Internal.content_type_header?(binary_name) do
       conn
     else
-      Plug.Conn.put_resp_header(conn, binary_name, encoded)
+      Conn.put_resp_header(conn, binary_name, encoded)
     end
   end
 
