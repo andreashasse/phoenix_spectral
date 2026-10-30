@@ -144,6 +144,59 @@ defmodule PhoenixSpectral.WebhookTest do
     end
   end
 
+  describe "webhook :headers" do
+    defp headers_webhook(headers) do
+      %{
+        name: "userCreated",
+        method: :post,
+        module: TestWebhookEvents,
+        payload: {:type, :user_created, 0},
+        headers: headers
+      }
+    end
+
+    test "each map field becomes a header parameter, required when the key is required" do
+      spec = generate([headers_webhook({:type, :webhook_headers, 0})])
+
+      parameters = spec["webhooks"]["userCreated"]["post"]["parameters"]
+
+      assert Enum.sort_by(parameters, & &1["name"]) == [
+               %{
+                 "name" => "x-event-id",
+                 "in" => "header",
+                 "required" => false,
+                 "schema" => %{"type" => "integer", "minimum" => 0}
+               },
+               %{
+                 "name" => "x-signature",
+                 "in" => "header",
+                 "required" => true,
+                 "schema" => %{"type" => "string"}
+               }
+             ]
+    end
+
+    test "an entry without :headers has no parameters" do
+      spec =
+        generate([
+          %{
+            name: "userCreated",
+            method: :post,
+            module: TestWebhookEvents,
+            payload: {:type, :user_created, 0}
+          }
+        ])
+
+      refute Map.has_key?(spec["webhooks"]["userCreated"]["post"], "parameters")
+    end
+
+    test "crashes when the :headers type is not a map type" do
+      assert_raise FunctionClauseError, fn ->
+        generate([headers_webhook({:type, :not_a_map, 0})])
+      end
+    end
+  end
+
   describe "per-webhook security" do
     @security_metadata %{
       title: "Test API",

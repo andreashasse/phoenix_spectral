@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Webhook header parameters. A webhook entry accepts an optional `:headers` key, a reference to a map type in the entry's `:module` (e.g. `{:type, :webhook_headers, 0}`). Each map field becomes a header parameter on the webhook operation, required when its key is required — for a signature or event-id header your API sends with each webhook. A `:headers` type that is not a map type raises.
+
 ## [0.8.0] - 2026-10-30
 
 ### Added

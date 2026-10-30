@@ -48,13 +48,14 @@ defmodule PhoenixSpectral do
           required(:method) => :spectra_openapi.http_method(),
           required(:module) => module(),
           required(:payload) => {:type, atom(), arity()},
+          optional(:headers) => {:type, atom(), arity()},
           optional(:responses) => [{:spectra_openapi.http_status_code(), binary()}],
           optional(:doc) => :spectra_openapi.endpoint_doc()
         }
 
   @type option :: {:webhooks, [webhook()]} | :pre_encoded | {:pre_encoded, boolean()}
 
-  @webhook_keys [:name, :method, :module, :payload, :responses, :doc]
+  @webhook_keys [:name, :method, :module, :payload, :headers, :responses, :doc]
 
   @doc """
   Generates an OpenAPI 3.1 specification from a Phoenix router module.
@@ -139,6 +140,9 @@ defmodule PhoenixSpectral do
   - `:method` — HTTP method your API uses when calling the consumer (required, usually `:post`)
   - `:module` — module owning the payload type (required)
   - `:payload` — the payload type reference (required, e.g. `{:type, :t, 0}`)
+  - `:headers` — reference to a map type in `:module` whose fields are the headers your
+    API sends (optional, e.g. `{:type, :webhook_headers, 0}`). Each field becomes a header
+    parameter, required when its key is `required(...)`
   - `:responses` — list of `{status_code, description}` tuples (optional, defaults to none)
   - `:doc` — operation documentation map, as for `Spectral.OpenAPI.endpoint/3` (optional)
 
@@ -208,7 +212,15 @@ defmodule PhoenixSpectral do
 
     Spectral.OpenAPI.webhook(name, method, Map.get(webhook, :doc, %{}))
     |> Spectral.OpenAPI.with_request_body(module, payload)
+    |> add_webhook_headers(module, Map.get(webhook, :headers))
     |> add_webhook_responses(Map.get(webhook, :responses, []))
+  end
+
+  defp add_webhook_headers(webhook, _module, nil), do: webhook
+
+  defp add_webhook_headers(webhook, module, {:type, name, arity}) do
+    {:ok, headers_type} = Spectral.TypeInfo.find_type(module.__spectra_type_info__(), name, arity)
+    add_header_parameters(webhook, module, headers_type)
   end
 
   defp add_webhook_responses(webhook, responses) do
@@ -325,8 +337,8 @@ defmodule PhoenixSpectral do
     [{status, headers_type, body_type}]
   end
 
-  defp add_header_parameters(endpoint, controller, headers_type) do
-    type_info = controller.__spectra_type_info__()
+  defp add_header_parameters(endpoint, module, headers_type) do
+    type_info = module.__spectra_type_info__()
     fields = PhoenixSpectral.Internal.map_fields(headers_type, type_info)
 
     Enum.reduce(fields, endpoint, fn field, ep ->
@@ -339,7 +351,7 @@ defmodule PhoenixSpectral do
         schema: val_type
       }
 
-      Spectral.OpenAPI.with_parameter(ep, controller, param_spec)
+      Spectral.OpenAPI.with_parameter(ep, module, param_spec)
     end)
   end
 
