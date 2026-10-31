@@ -7,11 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.10.0] - 2026-10-31
+
 ### Added
 - A webhook entry accepts `nil_fields: :null`, for a payload that your code encodes with `nil_fields: :null`. Its payload schema lists every field that allows `nil` in `required` and allows `null`. If the same type is also used without the option, the webhook gets a second schema with `Nullable` added to its name.
 
 ### Changed
-- Depend on unreleased spectral and spectra branches until spectra 0.17 and spectral 0.17 are released. Visible effects: the schema of a field that can be `nil` now also allows `null` (e.g. `["string", "null"]`) while staying optional; a header or parameter `description` is no longer repeated inside its `schema`; and JSON responses follow the global `nil_fields` setting, so with `config :spectra, :nil_fields, :null` a `nil` field is sent as JSON `null` instead of the string `"null"`.
+- Requires spectral 0.17 and spectra 0.17. Visible effects: the schema of a field that can be `nil` now also allows `null` (e.g. `["string", "null"]`) while staying optional; a header or parameter `description` is no longer repeated inside its `schema`; and JSON responses follow the global `nil_fields` setting, so with `config :spectra, :nil_fields, :null` a `nil` field is sent as JSON `null` instead of the string `"null"`.
 
 ### Fixed
 - Path args, query params, request and response headers, and webhook `:headers` typed as an alias to a map type in another module no longer fail with `{:type_not_found, ...}` when that map's fields use types local to the other module. Both OpenAPI generation and request decoding now resolve those fields in the module that defines the map.
