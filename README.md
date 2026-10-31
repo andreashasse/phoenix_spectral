@@ -214,7 +214,7 @@ A malformed entry raises rather than producing a broken spec, consistent with th
 Notes:
 
 - Payload types share `components/schemas` with your routes, so a type used by both is emitted once.
-- With `nil_fields: :null`, the payload type keeps its schema name. If your routes or another webhook also use that type without the option, this webhook gets a second schema with `Nullable` added to the name, such as `PaymentNullable`. Your app sends the webhook itself, so it must also pass the option when it encodes the payload: `Spectral.encode(payment, Payment, :t, :json, nil_fields: :null)`. PhoenixSpectral cannot check that the two match. With `config :spectra, :nil_fields, :null` the key changes nothing, and with `:omit` generation raises `ArgumentError`.
+- With `nil_fields: :null`, the payload type keeps its schema name. If your routes or another webhook also use that type without the option, this webhook gets a second schema with `Nullable` added to the name, such as `PaymentNullable`. Your app sends the webhook itself, so it must also pass the option when it encodes the payload: `Spectral.encode(payment, Payment, :t, :json, nil_fields: :null)`. PhoenixSpectral cannot check that the two match. With `config :spectra, :nil_fields, :null` the key changes nothing. Generation raises `ArgumentError` with `:omit`, and when another schema already has the `Nullable` name.
 - One event name can carry several methods; a webhook value is a Path Item Object, exactly like a `paths` entry.
 - Headers your API sends with each call, such as a signature and an event id, go in `:headers`:
 

@@ -178,6 +178,28 @@ defmodule PhoenixSpectral.WebhookTest do
       refute Map.has_key?(schemas["TestUser"], "required")
     end
 
+    test "nil_fields: :null on a payload alias names the schema after the alias" do
+      spec =
+        generate([
+          %{
+            name: "userCreated",
+            method: :post,
+            module: TestWebhookEvents,
+            payload: {:type, :user_created, 0},
+            nil_fields: :null
+          }
+        ])
+
+      assert %{"$ref" => "#/components/schemas/UserCreated0"} =
+               spec["webhooks"]["userCreated"]["post"]["requestBody"]["content"][
+                 "application/json"
+               ]["schema"]
+
+      schemas = spec["components"]["schemas"]
+      assert Enum.sort(schemas["UserCreated0"]["required"]) == ["email", "id", "name"]
+      refute Map.has_key?(schemas, "TestUserNullable")
+    end
+
     test "raises on a nil_fields value other than :null" do
       assert_raise ArgumentError, ~r/must be null, got: omit/, fn ->
         generate([

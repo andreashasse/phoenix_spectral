@@ -149,7 +149,8 @@ defmodule PhoenixSpectral do
   - `:nil_fields` — set to `:null` when the code that sends the webhook encodes the
     payload with `Spectral.encode/5` and `nil_fields: :null` (optional). The payload
     schema then lists every field that allows `nil` in `required` and allows `null`.
-    See `Spectral.OpenAPI.with_nil_fields/2`
+    If the type is also used without the option, the webhook gets a second schema
+    named `<Name>Nullable`. See `Spectral.OpenAPI.with_nil_fields/2`
   - `:doc` — operation documentation map, as for `Spectral.OpenAPI.endpoint/3` (optional)
 
   A malformed entry or an unknown key raises.
