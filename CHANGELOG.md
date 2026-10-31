@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- Path args, query params, request and response headers, and webhook `:headers` typed as an alias to a map type in another module no longer fail with `{:type_not_found, ...}` when that map's fields use types local to the other module. Both OpenAPI generation and request decoding now resolve those fields in the module that defines the map.
+
 ## [0.9.0] - 2026-10-31
 
 ### Added

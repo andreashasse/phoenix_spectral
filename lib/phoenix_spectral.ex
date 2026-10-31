@@ -224,7 +224,7 @@ defmodule PhoenixSpectral do
 
   defp add_webhook_headers(webhook, module, type_info, type_ref) do
     headers_type = find_webhook_type!(module, type_info, type_ref)
-    add_header_parameters(webhook, module, type_info, headers_type)
+    add_header_parameters(webhook, type_info, headers_type)
   end
 
   defp find_webhook_type!(module, type_info, {:type, name, arity}) do
@@ -254,7 +254,7 @@ defmodule PhoenixSpectral do
 
     Spectral.OpenAPI.endpoint(verb, phoenix_path_to_openapi_path(path), controller, action, 5)
     |> maybe_add_request_body(verb, controller, body_type)
-    |> add_header_parameters(controller, controller.__spectra_type_info__(), headers_type)
+    |> add_header_parameters(controller.__spectra_type_info__(), headers_type)
     |> add_query_parameters(controller, query_params_type)
     |> add_path_parameters(controller, path_args_type)
     |> add_responses(controller, action, extract_responses(return_type))
@@ -272,7 +272,7 @@ defmodule PhoenixSpectral do
     type_info = controller.__spectra_type_info__()
 
     Enum.reduce(responses, endpoint, fn {status, headers_type, body_type}, ep ->
-      {content_type, header_fields} =
+      {content_type, header_fields, headers_type_info} =
         PhoenixSpectral.Internal.pop_content_type(headers_type, type_info)
 
       Spectral.OpenAPI.response(status, status_code_description(status))
@@ -282,7 +282,7 @@ defmodule PhoenixSpectral do
         collapse_nil_body_type(body_type, type_info),
         content_type
       )
-      |> add_response_headers(controller, header_fields)
+      |> add_response_headers(Spectral.TypeInfo.get_module(headers_type_info), header_fields)
       |> then(&Spectral.OpenAPI.add_response(ep, &1))
     end)
   end
@@ -312,11 +312,11 @@ defmodule PhoenixSpectral do
     Spectral.OpenAPI.response_with_body(response, controller, body_type, content_type)
   end
 
-  defp add_response_headers(response, controller, header_fields) do
+  defp add_response_headers(response, module, header_fields) do
     Enum.reduce(header_fields, response, fn field, acc ->
       literal_map_field(kind: kind, binary_name: binary_name, val_type: val_type) = field
 
-      Spectral.OpenAPI.response_with_header(acc, binary_name, controller, %{
+      Spectral.OpenAPI.response_with_header(acc, binary_name, module, %{
         required: kind == :exact,
         schema: val_type
       })
@@ -351,8 +351,9 @@ defmodule PhoenixSpectral do
     [{status, headers_type, body_type}]
   end
 
-  defp add_header_parameters(endpoint, module, type_info, headers_type) do
-    fields = PhoenixSpectral.Internal.map_fields(headers_type, type_info)
+  defp add_header_parameters(endpoint, type_info, headers_type) do
+    {fields, fields_type_info} = PhoenixSpectral.Internal.map_fields(headers_type, type_info)
+    module = Spectral.TypeInfo.get_module(fields_type_info)
 
     Enum.reduce(fields, endpoint, fn field, ep ->
       literal_map_field(kind: kind, binary_name: binary_name, val_type: val_type) = field
@@ -370,7 +371,8 @@ defmodule PhoenixSpectral do
 
   defp add_query_parameters(endpoint, controller, query_params_type) do
     type_info = controller.__spectra_type_info__()
-    fields = PhoenixSpectral.Internal.map_fields(query_params_type, type_info)
+    {fields, fields_type_info} = PhoenixSpectral.Internal.map_fields(query_params_type, type_info)
+    module = Spectral.TypeInfo.get_module(fields_type_info)
 
     Enum.reduce(fields, endpoint, fn field, ep ->
       literal_map_field(kind: kind, binary_name: binary_name, val_type: val_type) = field
@@ -382,7 +384,7 @@ defmodule PhoenixSpectral do
         schema: val_type
       }
 
-      Spectral.OpenAPI.with_parameter(ep, controller, param_spec)
+      Spectral.OpenAPI.with_parameter(ep, module, param_spec)
     end)
   end
 
@@ -394,7 +396,8 @@ defmodule PhoenixSpectral do
 
   defp add_path_parameters(endpoint, controller, path_args_type) do
     type_info = controller.__spectra_type_info__()
-    fields = PhoenixSpectral.Internal.map_fields(path_args_type, type_info)
+    {fields, fields_type_info} = PhoenixSpectral.Internal.map_fields(path_args_type, type_info)
+    module = Spectral.TypeInfo.get_module(fields_type_info)
 
     Enum.reduce(fields, endpoint, fn field, ep ->
       literal_map_field(binary_name: binary_name, val_type: val_type) = field
@@ -406,7 +409,7 @@ defmodule PhoenixSpectral do
         schema: val_type
       }
 
-      Spectral.OpenAPI.with_parameter(ep, controller, param_spec)
+      Spectral.OpenAPI.with_parameter(ep, module, param_spec)
     end)
   end
 

@@ -292,7 +292,7 @@ defmodule PhoenixSpectral.Controller do
   end
 
   defp decode_path_args(conn, type_info, path_args_type, controller, action) do
-    fields = PhoenixSpectral.Internal.map_fields(path_args_type, type_info)
+    {fields, fields_type_info} = PhoenixSpectral.Internal.map_fields(path_args_type, type_info)
     raw_path_params = conn.path_params
 
     Enum.reduce_while(fields, {:ok, %{}}, fn field, {:ok, acc} ->
@@ -300,7 +300,7 @@ defmodule PhoenixSpectral.Controller do
 
       case Map.fetch(raw_path_params, binary_name) do
         {:ok, raw_value} ->
-          decode_value(raw_value, name, type_info, val_type, acc)
+          decode_value(raw_value, name, fields_type_info, val_type, acc)
 
         :error ->
           raise "PhoenixSpectral: path param #{inspect(binary_name)} declared in typespec for " <>
@@ -311,7 +311,7 @@ defmodule PhoenixSpectral.Controller do
   end
 
   defp decode_query_params(conn, type_info, query_params_type) do
-    fields = PhoenixSpectral.Internal.map_fields(query_params_type, type_info)
+    {fields, fields_type_info} = PhoenixSpectral.Internal.map_fields(query_params_type, type_info)
 
     raw_query_params =
       case conn.query_params do
@@ -329,7 +329,7 @@ defmodule PhoenixSpectral.Controller do
 
       case Map.fetch(raw_query_params, binary_name) do
         {:ok, raw_value} ->
-          decode_value(raw_value, name, type_info, val_type, acc)
+          decode_value(raw_value, name, fields_type_info, val_type, acc)
 
         :error when kind == :exact ->
           {:halt, {:error, [%Spectral.Error{type: :missing_data, location: [name]}]}}
@@ -341,7 +341,7 @@ defmodule PhoenixSpectral.Controller do
   end
 
   defp decode_request_headers(conn, type_info, headers_type) do
-    fields = PhoenixSpectral.Internal.map_fields(headers_type, type_info)
+    {fields, fields_type_info} = PhoenixSpectral.Internal.map_fields(headers_type, type_info)
     raw_headers = conn.req_headers
 
     Enum.reduce_while(fields, {:ok, %{}}, fn field, {:ok, acc} ->
@@ -350,7 +350,7 @@ defmodule PhoenixSpectral.Controller do
 
       case List.keyfind(raw_headers, binary_name, 0) do
         {_key, raw_value} ->
-          decode_value(raw_value, name, type_info, val_type, acc)
+          decode_value(raw_value, name, fields_type_info, val_type, acc)
 
         nil when kind == :exact ->
           {:halt, {:error, [%Spectral.Error{type: :missing_data, location: [name]}]}}
@@ -379,9 +379,9 @@ defmodule PhoenixSpectral.Controller do
        ) do
     headers_type = lookup_response_headers_type(type_info, action, status)
     content_type = PhoenixSpectral.Internal.response_content_type(headers_type, type_info)
-    fields = PhoenixSpectral.Internal.map_fields(headers_type, type_info)
+    {fields, fields_type_info} = PhoenixSpectral.Internal.map_fields(headers_type, type_info)
 
-    conn = encode_response_headers(conn, type_info, action, fields, response_headers)
+    conn = encode_response_headers(conn, fields_type_info, action, fields, response_headers)
     body_type = lookup_response_body_type(type_info, action, status)
     content_type = content_type || @default_content_type
 

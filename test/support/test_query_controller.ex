@@ -18,4 +18,12 @@ defmodule TestQueryController do
   def search(_conn, _path_args, %{q: q}, _headers, _body) do
     {200, %{}, [%TestUser{id: 1, name: q, email: "alice@example.com"}]}
   end
+
+  @type shared_query :: TestSharedTypes.query()
+
+  @spec shared(Plug.Conn.t(), TestSharedTypes.path_args(), shared_query(), %{}, nil) ::
+          {200, %{}, [TestUser.t()]}
+  def shared(_conn, %{id: id}, %{limit: limit}, _headers, _body) do
+    {200, %{}, [%TestUser{id: id * limit, name: "Alice", email: "alice@example.com"}]}
+  end
 end

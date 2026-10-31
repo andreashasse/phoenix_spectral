@@ -583,4 +583,30 @@ defmodule PhoenixSpectral.ControllerTest do
       end
     end
   end
+
+  describe "PhoenixSpectral.Controller with types aliased from another module" do
+    test "decodes request headers and encodes response headers" do
+      conn = dispatch_header(:shared, %{}, [{"x-signature", "sig"}, {"x-count", "3"}])
+
+      assert conn.status == 200
+      assert Plug.Conn.get_resp_header(conn, "x-count") == ["3"]
+      body = Jason.decode!(conn.resp_body)
+      assert body["name"] == "sig"
+      assert body["id"] == 3
+    end
+
+    test "returns 400 when a header does not match the other module's local type" do
+      conn = dispatch_header(:shared, %{}, [{"x-signature", "sig"}, {"x-count", "0"}])
+
+      assert conn.status == 400
+    end
+
+    test "decodes path args and query params" do
+      conn =
+        call(TestQueryController, :shared, :get, "/", nil, %{"id" => "2"}, %{"limit" => "5"}, [])
+
+      assert conn.status == 200
+      assert [%{"id" => 10}] = Jason.decode!(conn.resp_body)
+    end
+  end
 end

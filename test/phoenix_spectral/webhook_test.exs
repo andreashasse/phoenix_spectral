@@ -206,6 +206,27 @@ defmodule PhoenixSpectral.WebhookTest do
       refute Map.has_key?(spec["webhooks"]["userCreated"]["post"], "parameters")
     end
 
+    test "a :headers type aliased from another module resolves that module's local types" do
+      spec = generate([headers_webhook({:type, :shared_headers, 0})])
+
+      parameters = spec["webhooks"]["userCreated"]["post"]["parameters"]
+
+      assert Enum.sort_by(parameters, & &1["name"]) == [
+               %{
+                 "name" => "x-count",
+                 "in" => "header",
+                 "required" => false,
+                 "schema" => %{"type" => "integer", "minimum" => 1}
+               },
+               %{
+                 "name" => "x-signature",
+                 "in" => "header",
+                 "required" => true,
+                 "schema" => %{"type" => "string"}
+               }
+             ]
+    end
+
     test "crashes when the :headers type is not a map type" do
       assert_raise FunctionClauseError, fn ->
         generate([headers_webhook({:type, :not_a_map, 0})])

@@ -9,5 +9,7 @@ defmodule TestWebhookEvents do
           optional(:"x-event-id") => non_neg_integer()
         }
 
+  @type shared_headers :: TestSharedTypes.headers()
+
   @type not_a_map :: binary()
 end

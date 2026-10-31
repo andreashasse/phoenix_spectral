@@ -508,4 +508,54 @@ defmodule PhoenixSpectralTest do
       end
     end
   end
+
+  describe "generate_openapi/2 with types aliased from another module" do
+    defp parameter(params, location, name) do
+      Enum.find(params, &(&1["in"] == location && &1["name"] == name))
+    end
+
+    test "header parameters resolve the other module's local types" do
+      spec = generate_header_spec()
+
+      params = spec["paths"]["/items/shared"]["get"]["parameters"]
+
+      assert parameter(params, "header", "x-signature") == %{
+               "name" => "x-signature",
+               "in" => "header",
+               "required" => true,
+               "schema" => %{"type" => "string"}
+             }
+
+      assert parameter(params, "header", "x-count") == %{
+               "name" => "x-count",
+               "in" => "header",
+               "required" => false,
+               "schema" => %{"type" => "integer", "minimum" => 1}
+             }
+    end
+
+    test "response headers resolve the other module's local types" do
+      spec = generate_header_spec()
+
+      headers = spec["paths"]["/items/shared"]["get"]["responses"]["200"]["headers"]
+
+      assert headers["x-count"]["required"] == true
+      assert headers["x-count"]["schema"] == %{"type" => "integer", "minimum" => 1}
+    end
+
+    test "query and path parameters resolve the other module's local types" do
+      spec = generate_query_spec()
+
+      params = spec["paths"]["/users/{id}/shared"]["get"]["parameters"]
+
+      assert parameter(params, "query", "limit") == %{
+               "name" => "limit",
+               "in" => "query",
+               "required" => true,
+               "schema" => %{"type" => "integer", "minimum" => 1}
+             }
+
+      assert parameter(params, "path", "id")["schema"] == %{"type" => "integer", "minimum" => 1}
+    end
+  end
 end

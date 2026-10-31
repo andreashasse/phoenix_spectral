@@ -36,7 +36,9 @@ defmodule PhoenixSpectral.Internal do
   @content_type_header "content-type"
   @json_content_type "application/json"
 
-  def map_fields(sp_map(fields: fields), _type_info), do: fields
+  # Returns the fields together with the type info they resolve in: an alias to a map in
+  # another module has fields whose types are local to that module.
+  def map_fields(sp_map(fields: fields), type_info), do: {fields, type_info}
 
   def map_fields(type_ref, type_info) do
     {resolved, resolved_type_info} = resolve_type_ref(type_ref, type_info)
@@ -61,12 +63,14 @@ defmodule PhoenixSpectral.Internal do
   end
 
   def pop_content_type(headers_type, type_info) do
-    case Enum.split_with(map_fields(headers_type, type_info), &content_type_field?/1) do
+    {fields, fields_type_info} = map_fields(headers_type, type_info)
+
+    case Enum.split_with(fields, &content_type_field?/1) do
       {[], header_fields} ->
-        {nil, header_fields}
+        {nil, header_fields, fields_type_info}
 
       {[content_type_field], header_fields} ->
-        {content_type(content_type_field), header_fields}
+        {content_type(content_type_field), header_fields, fields_type_info}
 
       {[_, _ | _] = content_type_fields, _header_fields} ->
         raise ArgumentError,
@@ -76,7 +80,7 @@ defmodule PhoenixSpectral.Internal do
   end
 
   def response_content_type(headers_type, type_info) do
-    {content_type, _header_fields} = pop_content_type(headers_type, type_info)
+    {content_type, _header_fields, _fields_type_info} = pop_content_type(headers_type, type_info)
     content_type
   end
 
