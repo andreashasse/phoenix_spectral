@@ -129,6 +129,69 @@ defmodule PhoenixSpectral.WebhookTest do
       end
     end
 
+    test "nil_fields: :null keeps the schema name of a payload type used nowhere else" do
+      spec =
+        generate([
+          %{
+            name: "paymentDone",
+            method: :post,
+            module: TestWebhookEvents,
+            payload: {:type, :payment_done, 0},
+            nil_fields: :null
+          }
+        ])
+
+      assert %{"$ref" => "#/components/schemas/PaymentDone0"} =
+               spec["webhooks"]["paymentDone"]["post"]["requestBody"]["content"][
+                 "application/json"
+               ]["schema"]
+
+      assert %{
+               "required" => required,
+               "properties" => %{"note" => %{"type" => ["string", "null"]}}
+             } = spec["components"]["schemas"]["PaymentDone0"]
+
+      assert Enum.sort(required) == ["id", "note"]
+      refute Map.has_key?(spec["components"]["schemas"], "PaymentDone0Nullable")
+    end
+
+    test "nil_fields: :null gives a payload type the router also uses its own schema" do
+      spec =
+        generate([
+          %{
+            name: "userCreated",
+            method: :post,
+            module: TestUser,
+            payload: {:type, :t, 0},
+            nil_fields: :null
+          }
+        ])
+
+      schemas = spec["components"]["schemas"]
+
+      assert %{"$ref" => "#/components/schemas/TestUserNullable"} =
+               spec["webhooks"]["userCreated"]["post"]["requestBody"]["content"][
+                 "application/json"
+               ]["schema"]
+
+      assert Enum.sort(schemas["TestUserNullable"]["required"]) == ["email", "id", "name"]
+      refute Map.has_key?(schemas["TestUser"], "required")
+    end
+
+    test "raises on a nil_fields value other than :null" do
+      assert_raise ArgumentError, ~r/must be null, got: omit/, fn ->
+        generate([
+          %{
+            name: "userCreated",
+            method: :post,
+            module: TestUser,
+            payload: {:type, :t, 0},
+            nil_fields: :omit
+          }
+        ])
+      end
+    end
+
     test "coexists with encode options, in either order" do
       webhooks = [
         %{name: "userCreated", method: :post, module: TestUser, payload: {:type, :t, 0}}

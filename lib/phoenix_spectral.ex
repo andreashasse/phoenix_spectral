@@ -50,12 +50,13 @@ defmodule PhoenixSpectral do
           required(:payload) => {:type, atom(), arity()},
           optional(:headers) => {:type, atom(), arity()},
           optional(:responses) => [{:spectra_openapi.http_status_code(), binary()}],
+          optional(:nil_fields) => :null,
           optional(:doc) => :spectra_openapi.endpoint_doc()
         }
 
   @type option :: {:webhooks, [webhook()]} | :pre_encoded | {:pre_encoded, boolean()}
 
-  @webhook_keys [:name, :method, :module, :payload, :headers, :responses, :doc]
+  @webhook_keys [:name, :method, :module, :payload, :headers, :responses, :nil_fields, :doc]
 
   @doc """
   Generates an OpenAPI 3.1 specification from a Phoenix router module.
@@ -145,6 +146,10 @@ defmodule PhoenixSpectral do
     parameter, required when its key is `required(...)`
   - `:responses` — list of `{status_code, description}` tuples, where `status_code` is an
     integer or a range from `"1XX"` to `"5XX"` (optional, defaults to none)
+  - `:nil_fields` — set to `:null` when the code that sends the webhook encodes the
+    payload with `Spectral.encode/5` and `nil_fields: :null` (optional). The payload
+    schema then lists every field that allows `nil` in `required` and allows `null`.
+    See `Spectral.OpenAPI.with_nil_fields/2`
   - `:doc` — operation documentation map, as for `Spectral.OpenAPI.endpoint/3` (optional)
 
   A malformed entry or an unknown key raises.
@@ -218,7 +223,13 @@ defmodule PhoenixSpectral do
     |> Spectral.OpenAPI.with_request_body(module, payload)
     |> add_webhook_headers(module, type_info, Map.get(webhook, :headers))
     |> add_webhook_responses(Map.get(webhook, :responses, []))
+    |> add_webhook_nil_fields(Map.fetch(webhook, :nil_fields))
   end
+
+  defp add_webhook_nil_fields(webhook, :error), do: webhook
+
+  defp add_webhook_nil_fields(webhook, {:ok, nil_fields}),
+    do: Spectral.OpenAPI.with_nil_fields(webhook, nil_fields)
 
   defp add_webhook_headers(webhook, _module, _type_info, nil), do: webhook
 
