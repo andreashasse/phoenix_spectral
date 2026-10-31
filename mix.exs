@@ -44,8 +44,11 @@ defmodule PhoenixSpectral.MixProject do
   defp deps do
     [
       {:phoenix, "~> 1.7"},
-      {:spectral, "~> 0.16.0"},
-      {:spectra, "~> 0.16.0"},
+      # TODO: revert both to hex versions once spectra 0.17 and spectral 0.17 are released.
+      {:spectral,
+       github: "andreashasse/spectral", branch: "andreashasse/pre-encoded-nil", override: true},
+      {:spectra,
+       github: "andreashasse/spectra", branch: "andreashasse/nil-fields-per-call", override: true},
       {:jason, "~> 1.0", only: [:dev, :test]},
       {:ex_doc, ">= 0.0.0", only: :dev, runtime: false},
       {:credo, "~> 1.7", only: [:dev, :test], runtime: false},

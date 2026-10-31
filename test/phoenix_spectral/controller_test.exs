@@ -286,6 +286,27 @@ defmodule PhoenixSpectral.ControllerTest do
     end
   end
 
+  describe "PhoenixSpectral.Controller with the global nil_fields setting" do
+    setup do
+      previous = Application.fetch_env(:spectra, :nil_fields)
+      Application.put_env(:spectra, :nil_fields, :null)
+
+      on_exit(fn ->
+        case previous do
+          {:ok, value} -> Application.put_env(:spectra, :nil_fields, value)
+          :error -> Application.delete_env(:spectra, :nil_fields)
+        end
+      end)
+    end
+
+    test "a nil response field is sent as JSON null" do
+      conn = dispatch(:post, "/users", %{"name" => "Charlie"})
+
+      assert conn.status == 201
+      assert %{"email" => nil} = Jason.decode!(conn.resp_body)
+    end
+  end
+
   describe "PhoenixSpectral.Controller with field filtering (only:)" do
     defp dispatch_public(action, path_params) do
       call(TestUserController, action, :get, "/", nil, path_params, %{}, [])

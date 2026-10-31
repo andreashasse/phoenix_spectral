@@ -315,6 +315,8 @@ When decoding a JSON request body into a struct, fields absent from the JSON are
 
 This means Ecto fields declared with `timestamps()` (which default to `nil`) are handled automatically: they are optional on input (the client omits them) and omitted from output when `nil`. No special handling required.
 
+In the generated schema such a field stays optional and also allows `null` (for example `"type": ["string", "null"]`), so a client may send it as `null` or leave it out. Response encoding follows the global spectra `nil_fields` setting: by default a `nil` field is left out of the JSON, and with `config :spectra, :nil_fields, :null` it is sent as `null`. See [spectra's `nil_fields` docs](https://hexdocs.pm/spectra) for the options.
+
 ### Field filtering with `only`
 
 The `only` option restricts which struct fields appear in encode, decode, and schema generation. Fields not in the list are silently dropped on encode and filled from struct defaults on decode. This is the Ecto equivalent of `@derive {Jason.Encoder, only: [...]}`.
