@@ -4,4 +4,5 @@ defmodule TestQueryRouter do
 
   get("/users", TestQueryController, :index)
   get("/users/search", TestQueryController, :search)
+  get("/users/:id/shared", TestQueryController, :shared)
 end

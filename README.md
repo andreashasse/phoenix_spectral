@@ -11,7 +11,7 @@ Add `phoenix_spectral` to your dependencies in `mix.exs`:
 ```elixir
 def deps do
   [
-    {:phoenix_spectral, "~> 0.9.0"}
+    {:phoenix_spectral, "~> 0.10.0"}
   ]
 end
 ```
@@ -200,6 +200,7 @@ Each entry is a map:
 | `:payload` | yes | Payload type reference, e.g. `{:type, :t, 0}` |
 | `:headers` | no | Reference to a map type in `:module` listing the headers your API sends, e.g. `{:type, :webhook_headers, 0}`. Each field becomes a header parameter, required when its key is `required(...)`. A type that is not a map raises |
 | `:responses` | no | List of `{status_code, description}` tuples. `status_code` is an integer or a range from `"1XX"` to `"5XX"`. Defaults to none — OpenAPI 3.1 does not require responses |
+| `:nil_fields` | no | `:null` when your code encodes the payload with `nil_fields: :null`. The payload schema then lists every field that allows `nil` in `required` and allows `null`. Any other value raises |
 | `:doc` | no | Operation documentation map: `:summary`, `:description`, `:operationId`, `:tags`, `:deprecated`, `:externalDocs`, `:security` |
 
 Or directly:
@@ -213,6 +214,7 @@ A malformed entry raises rather than producing a broken spec, consistent with th
 Notes:
 
 - Payload types share `components/schemas` with your routes, so a type used by both is emitted once.
+- With `nil_fields: :null`, the payload type keeps its schema name. If your routes or another webhook also use that type without the option, this webhook gets a second schema with `Nullable` added to the name, such as `PaymentNullable`. Your app sends the webhook itself, so it must also pass the option when it encodes the payload: `Spectral.encode(payment, Payment, :t, :json, nil_fields: :null)`. PhoenixSpectral cannot check that the two match. With `config :spectra, :nil_fields, :null` the key changes nothing. Generation raises `ArgumentError` with `:omit`, and when another schema already has the `Nullable` name.
 - One event name can carry several methods; a webhook value is a Path Item Object, exactly like a `paths` entry.
 - Headers your API sends with each call, such as a signature and an event id, go in `:headers`:
 
@@ -313,7 +315,15 @@ When decoding a JSON request body into a struct, fields absent from the JSON are
 | `nil` | yes (`T \| nil`) | `nil` |
 | `nil` | no | **error** — field is required |
 
-This means Ecto fields declared with `timestamps()` (which default to `nil`) are handled automatically: they are optional on input (the client omits them) and omitted from output when `nil`. No special handling required.
+This means Ecto fields declared with `timestamps()` (which default to `nil`) are handled automatically: by default they are optional on input (the client omits them) and omitted from output when `nil`. No special handling required.
+
+How the generated schema describes such a field, and how a response encodes it, depends on `config :spectra, :nil_fields`:
+
+- `:omit_or_null` (default): the field is optional and allows `null` (for example `"type": ["string", "null"]`); a `nil` value is left out of the response.
+- `:omit`: the field is optional and does not allow `null`, the schema from before this setting existed; a `nil` value is left out.
+- `:null`: the field is required and allows `null`; a `nil` value is sent as `null`.
+
+PhoenixSpectral encodes responses with this global setting. A webhook payload can instead always send `null`; see the `:nil_fields` key under [Webhooks](#webhooks). See the `nil_fields` table in [Spectral's docs](https://hexdocs.pm/spectral) for details.
 
 ### Field filtering with `only`
 

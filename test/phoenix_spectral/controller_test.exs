@@ -286,6 +286,27 @@ defmodule PhoenixSpectral.ControllerTest do
     end
   end
 
+  describe "PhoenixSpectral.Controller with the global nil_fields setting" do
+    setup do
+      previous = Application.fetch_env(:spectra, :nil_fields)
+      Application.put_env(:spectra, :nil_fields, :null)
+
+      on_exit(fn ->
+        case previous do
+          {:ok, value} -> Application.put_env(:spectra, :nil_fields, value)
+          :error -> Application.delete_env(:spectra, :nil_fields)
+        end
+      end)
+    end
+
+    test "a nil response field is sent as JSON null" do
+      conn = dispatch(:post, "/users", %{"name" => "Charlie"})
+
+      assert conn.status == 201
+      assert %{"email" => nil} = Jason.decode!(conn.resp_body)
+    end
+  end
+
   describe "PhoenixSpectral.Controller with field filtering (only:)" do
     defp dispatch_public(action, path_params) do
       call(TestUserController, action, :get, "/", nil, path_params, %{}, [])
@@ -580,6 +601,52 @@ defmodule PhoenixSpectral.ControllerTest do
     test "a non-binary body under a non-JSON content type raises" do
       assert_raise RuntimeError, ~r/must return a binary body/, fn ->
         dispatch_content_type(:download_not_binary)
+      end
+    end
+  end
+
+  describe "PhoenixSpectral.Controller with types aliased from another module" do
+    test "decodes request headers and encodes response headers" do
+      conn = dispatch_header(:shared, %{}, [{"x-signature", "sig"}, {"x-count", "3"}])
+
+      assert conn.status == 200
+      assert Plug.Conn.get_resp_header(conn, "x-count") == ["3"]
+      body = Jason.decode!(conn.resp_body)
+      assert body["name"] == "sig"
+      assert body["id"] == 3
+    end
+
+    test "returns 400 when a header does not match the other module's local type" do
+      conn = dispatch_header(:shared, %{}, [{"x-signature", "sig"}, {"x-count", "0"}])
+
+      assert conn.status == 400
+    end
+
+    test "decodes path args and query params" do
+      conn =
+        call(TestQueryController, :shared, :get, "/", nil, %{"id" => "2"}, %{"limit" => "5"}, [])
+
+      assert conn.status == 200
+      assert [%{"id" => 10}] = Jason.decode!(conn.resp_body)
+    end
+
+    test "returns 400 when a path arg does not match the other module's local type" do
+      conn =
+        call(TestQueryController, :shared, :get, "/", nil, %{"id" => "0"}, %{"limit" => "5"}, [])
+
+      assert conn.status == 400
+    end
+
+    test "returns 400 when a query param does not match the other module's local type" do
+      conn =
+        call(TestQueryController, :shared, :get, "/", nil, %{"id" => "2"}, %{"limit" => "0"}, [])
+
+      assert conn.status == 400
+    end
+
+    test "raises when a response header does not match the other module's local type" do
+      assert_raise MatchError, fn ->
+        dispatch_header(:shared_bad_count, %{}, [])
       end
     end
   end

@@ -129,6 +129,91 @@ defmodule PhoenixSpectral.WebhookTest do
       end
     end
 
+    test "nil_fields: :null keeps the schema name of a payload type used nowhere else" do
+      spec =
+        generate([
+          %{
+            name: "paymentDone",
+            method: :post,
+            module: TestWebhookEvents,
+            payload: {:type, :payment_done, 0},
+            nil_fields: :null
+          }
+        ])
+
+      assert %{"$ref" => "#/components/schemas/PaymentDone0"} =
+               spec["webhooks"]["paymentDone"]["post"]["requestBody"]["content"][
+                 "application/json"
+               ]["schema"]
+
+      assert %{
+               "required" => required,
+               "properties" => %{"note" => %{"type" => ["string", "null"]}}
+             } = spec["components"]["schemas"]["PaymentDone0"]
+
+      assert Enum.sort(required) == ["id", "note"]
+      refute Map.has_key?(spec["components"]["schemas"], "PaymentDone0Nullable")
+    end
+
+    test "nil_fields: :null gives a payload type the router also uses its own schema" do
+      spec =
+        generate([
+          %{
+            name: "userCreated",
+            method: :post,
+            module: TestUser,
+            payload: {:type, :t, 0},
+            nil_fields: :null
+          }
+        ])
+
+      schemas = spec["components"]["schemas"]
+
+      assert %{"$ref" => "#/components/schemas/TestUserNullable"} =
+               spec["webhooks"]["userCreated"]["post"]["requestBody"]["content"][
+                 "application/json"
+               ]["schema"]
+
+      assert Enum.sort(schemas["TestUserNullable"]["required"]) == ["email", "id", "name"]
+      refute Map.has_key?(schemas["TestUser"], "required")
+    end
+
+    test "nil_fields: :null on a payload alias names the schema after the alias" do
+      spec =
+        generate([
+          %{
+            name: "userCreated",
+            method: :post,
+            module: TestWebhookEvents,
+            payload: {:type, :user_created, 0},
+            nil_fields: :null
+          }
+        ])
+
+      assert %{"$ref" => "#/components/schemas/UserCreated0"} =
+               spec["webhooks"]["userCreated"]["post"]["requestBody"]["content"][
+                 "application/json"
+               ]["schema"]
+
+      schemas = spec["components"]["schemas"]
+      assert Enum.sort(schemas["UserCreated0"]["required"]) == ["email", "id", "name"]
+      refute Map.has_key?(schemas, "TestUserNullable")
+    end
+
+    test "raises on a nil_fields value other than :null" do
+      assert_raise ArgumentError, ~r/must be null, got: omit/, fn ->
+        generate([
+          %{
+            name: "userCreated",
+            method: :post,
+            module: TestUser,
+            payload: {:type, :t, 0},
+            nil_fields: :omit
+          }
+        ])
+      end
+    end
+
     test "coexists with encode options, in either order" do
       webhooks = [
         %{name: "userCreated", method: :post, module: TestUser, payload: {:type, :t, 0}}
@@ -204,6 +289,27 @@ defmodule PhoenixSpectral.WebhookTest do
         ])
 
       refute Map.has_key?(spec["webhooks"]["userCreated"]["post"], "parameters")
+    end
+
+    test "a :headers type aliased from another module resolves that module's local types" do
+      spec = generate([headers_webhook({:type, :shared_headers, 0})])
+
+      parameters = spec["webhooks"]["userCreated"]["post"]["parameters"]
+
+      assert Enum.sort_by(parameters, & &1["name"]) == [
+               %{
+                 "name" => "x-count",
+                 "in" => "header",
+                 "required" => false,
+                 "schema" => %{"type" => "integer", "minimum" => 1}
+               },
+               %{
+                 "name" => "x-signature",
+                 "in" => "header",
+                 "required" => true,
+                 "schema" => %{"type" => "string"}
+               }
+             ]
     end
 
     test "crashes when the :headers type is not a map type" do

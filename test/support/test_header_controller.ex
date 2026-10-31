@@ -49,4 +49,20 @@ defmodule TestHeaderController do
         {404, %{}, %TestError{message: "Not found"}}
     end
   end
+
+  @type shared_headers :: TestSharedTypes.headers()
+
+  @spec shared(Plug.Conn.t(), %{}, %{}, shared_headers(), nil) ::
+          {200, TestSharedTypes.response_headers(), TestUser.t()}
+  def shared(_conn, _path_args, %{}, headers, _body) do
+    count = Map.get(headers, :"x-count", 1)
+    user = %TestUser{id: count, name: headers[:"x-signature"], email: "test@example.com"}
+    {200, %{:"x-count" => count}, user}
+  end
+
+  @spec shared_bad_count(Plug.Conn.t(), %{}, %{}, %{}, nil) ::
+          {200, TestSharedTypes.response_headers(), TestUser.t()}
+  def shared_bad_count(_conn, _path_args, %{}, _headers, _body) do
+    {200, %{:"x-count" => 0}, %TestUser{id: 1, name: "Alice", email: "alice@example.com"}}
+  end
 end
