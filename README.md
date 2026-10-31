@@ -313,9 +313,15 @@ When decoding a JSON request body into a struct, fields absent from the JSON are
 | `nil` | yes (`T \| nil`) | `nil` |
 | `nil` | no | **error** — field is required |
 
-This means Ecto fields declared with `timestamps()` (which default to `nil`) are handled automatically: they are optional on input (the client omits them) and omitted from output when `nil`. No special handling required.
+This means Ecto fields declared with `timestamps()` (which default to `nil`) are handled automatically: by default they are optional on input (the client omits them) and omitted from output when `nil`. No special handling required.
 
-In the generated schema such a field stays optional and also allows `null` (for example `"type": ["string", "null"]`), so a client may send it as `null` or leave it out. Response encoding follows the global spectra `nil_fields` setting: by default a `nil` field is left out of the JSON, and with `config :spectra, :nil_fields, :null` it is sent as `null`. See [spectra's `nil_fields` docs](https://hexdocs.pm/spectra) for the options.
+How the generated schema describes such a field, and how a response encodes it, depends on `config :spectra, :nil_fields`:
+
+- `:omit_or_null` (default): the field is optional and allows `null` (for example `"type": ["string", "null"]`); a `nil` value is left out of the response.
+- `:omit`: the field is optional and does not allow `null`, the schema from before this setting existed; a `nil` value is left out.
+- `:null`: the field is required and allows `null`; a `nil` value is sent as `null`.
+
+PhoenixSpectral encodes responses with this global setting. See the `nil_fields` table in [Spectral's docs](https://hexdocs.pm/spectral) for details.
 
 ### Field filtering with `only`
 

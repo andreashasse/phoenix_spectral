@@ -224,7 +224,7 @@ defmodule PhoenixSpectral do
 
   defp add_webhook_headers(webhook, module, type_info, type_ref) do
     headers_type = find_webhook_type!(module, type_info, type_ref)
-    add_header_parameters(webhook, type_info, headers_type)
+    add_parameters(webhook, :header, type_info, headers_type)
   end
 
   defp find_webhook_type!(module, type_info, {:type, name, arity}) do
@@ -252,12 +252,14 @@ defmodule PhoenixSpectral do
     {path_args_type, query_params_type, headers_type, body_type, return_type} =
       extract_handler_type(controller, action)
 
+    type_info = controller.__spectra_type_info__()
+
     Spectral.OpenAPI.endpoint(verb, phoenix_path_to_openapi_path(path), controller, action, 5)
     |> maybe_add_request_body(verb, controller, body_type)
-    |> add_header_parameters(controller.__spectra_type_info__(), headers_type)
-    |> add_query_parameters(controller, query_params_type)
-    |> add_path_parameters(controller, path_args_type)
-    |> add_responses(controller, action, extract_responses(return_type))
+    |> add_parameters(:header, type_info, headers_type)
+    |> add_parameters(:query, type_info, query_params_type)
+    |> add_parameters(:path, type_info, path_args_type)
+    |> add_responses(controller, type_info, action, extract_responses(return_type))
   end
 
   defp maybe_add_request_body(endpoint, verb, controller, body_type) do
@@ -268,9 +270,7 @@ defmodule PhoenixSpectral do
     end
   end
 
-  defp add_responses(endpoint, controller, action, responses) do
-    type_info = controller.__spectra_type_info__()
-
+  defp add_responses(endpoint, controller, type_info, action, responses) do
     Enum.reduce(responses, endpoint, fn {status, headers_type, body_type}, ep ->
       {content_type, header_fields, headers_type_info} =
         PhoenixSpectral.Internal.pop_content_type(headers_type, type_info)
@@ -351,8 +351,8 @@ defmodule PhoenixSpectral do
     [{status, headers_type, body_type}]
   end
 
-  defp add_header_parameters(endpoint, type_info, headers_type) do
-    {fields, fields_type_info} = PhoenixSpectral.Internal.map_fields(headers_type, type_info)
+  defp add_parameters(endpoint, location, type_info, params_type) do
+    {fields, fields_type_info} = PhoenixSpectral.Internal.map_fields(params_type, type_info)
     module = Spectral.TypeInfo.get_module(fields_type_info)
 
     Enum.reduce(fields, endpoint, fn field, ep ->
@@ -360,27 +360,8 @@ defmodule PhoenixSpectral do
 
       param_spec = %{
         name: binary_name,
-        in: :header,
-        required: kind == :exact,
-        schema: val_type
-      }
-
-      Spectral.OpenAPI.with_parameter(ep, module, param_spec)
-    end)
-  end
-
-  defp add_query_parameters(endpoint, controller, query_params_type) do
-    type_info = controller.__spectra_type_info__()
-    {fields, fields_type_info} = PhoenixSpectral.Internal.map_fields(query_params_type, type_info)
-    module = Spectral.TypeInfo.get_module(fields_type_info)
-
-    Enum.reduce(fields, endpoint, fn field, ep ->
-      literal_map_field(kind: kind, binary_name: binary_name, val_type: val_type) = field
-
-      param_spec = %{
-        name: binary_name,
-        in: :query,
-        required: kind == :exact,
+        in: location,
+        required: location == :path or kind == :exact,
         schema: val_type
       }
 
@@ -392,25 +373,6 @@ defmodule PhoenixSpectral do
 
   defp phoenix_path_to_openapi_path(path) do
     Regex.replace(@path_param_regex, path, "{\\1}")
-  end
-
-  defp add_path_parameters(endpoint, controller, path_args_type) do
-    type_info = controller.__spectra_type_info__()
-    {fields, fields_type_info} = PhoenixSpectral.Internal.map_fields(path_args_type, type_info)
-    module = Spectral.TypeInfo.get_module(fields_type_info)
-
-    Enum.reduce(fields, endpoint, fn field, ep ->
-      literal_map_field(binary_name: binary_name, val_type: val_type) = field
-
-      param_spec = %{
-        name: binary_name,
-        in: :path,
-        required: true,
-        schema: val_type
-      }
-
-      Spectral.OpenAPI.with_parameter(ep, module, param_spec)
-    end)
   end
 
   defp http_method_supports_body?(:post), do: true

@@ -629,5 +629,25 @@ defmodule PhoenixSpectral.ControllerTest do
       assert conn.status == 200
       assert [%{"id" => 10}] = Jason.decode!(conn.resp_body)
     end
+
+    test "returns 400 when a path arg does not match the other module's local type" do
+      conn =
+        call(TestQueryController, :shared, :get, "/", nil, %{"id" => "0"}, %{"limit" => "5"}, [])
+
+      assert conn.status == 400
+    end
+
+    test "returns 400 when a query param does not match the other module's local type" do
+      conn =
+        call(TestQueryController, :shared, :get, "/", nil, %{"id" => "2"}, %{"limit" => "0"}, [])
+
+      assert conn.status == 400
+    end
+
+    test "raises when a response header does not match the other module's local type" do
+      assert_raise MatchError, fn ->
+        dispatch_header(:shared_bad_count, %{}, [])
+      end
+    end
   end
 end
